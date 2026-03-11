@@ -19,7 +19,8 @@
       "Bash(venv/Scripts/python.exe main.py analyze)",
       "Bash(venv/Scripts/python.exe main.py heal)",
       "Read(//c/Users/tolga/OneDrive/Masaüstü/Yeni klasör/qa_dashboard/templates/partials/**)",
-      "Read(//c/Users/tolga/OneDrive/Masaüstü/Yeni klasör/qa_dashboard/static/assets/js/charts/**)"
+      "Read(//c/Users/tolga/OneDrive/Masaüstü/Yeni klasör/qa_dashboard/static/assets/js/charts/**)",
+      "Read(//c/Users/tolga/OneDrive/Masaüstü/Yeni klasör/vue/components/Header/AppHeader/**)"
     ]
   }
 }
