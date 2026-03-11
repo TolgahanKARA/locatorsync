@@ -2086,9 +2086,23 @@
             <button class="btn btn-sm btn-outline-secondary ms-2" style="font-size:0.72rem;padding:1px 8px;" onclick="App.editProject()">
               Proje Ayarlarını Düzenle
             </button><br><br>
-            <strong>Vue'da data-test olan element sayısı:</strong> <strong>${stats.vue_elements_with_dt || stats.vue_elements_with_id || 0}</strong><br>
-            ${(stats.vue_elements_with_dt || stats.vue_elements_with_id || 0) === 0
-              ? '⚠ Vue yolunda data-test attribute\'lu element bulunamadı — Vue yolu doğru mu?'
+            <strong>Tarama özeti:</strong><br>
+            &nbsp;• Taranan .vue dosyası: <strong>${stats.scan_vue_files ?? '?'}</strong><br>
+            &nbsp;• Bulunan element: <strong>${stats.scan_total_elements ?? '?'}</strong><br>
+            &nbsp;• Dinamik binding (atlanan): <strong>${stats.scan_dynamic_skipped ?? '?'}</strong><br>
+            &nbsp;• data-test olmayan (atlanan): <strong>${stats.scan_no_dt_skipped ?? '?'}</strong><br>
+            &nbsp;• Statik data-test (kullanılabilir): <strong>${stats.vue_elements_with_dt || 0}</strong><br><br>
+            ${(stats.vue_elements_with_dt || 0) === 0
+              ? (() => {
+                  const files = stats.scan_vue_files ?? 0;
+                  const total = stats.scan_total_elements ?? 0;
+                  const dynamic = stats.scan_dynamic_skipped ?? 0;
+                  if (files === 0) return '⚠ Vue yolunda hiç .vue dosyası bulunamadı — yol yanlış olabilir.';
+                  if (total === 0) return `⚠ ${files} .vue dosyası tarandı ama element bulunamadı — &lt;template&gt; yapısı farklı olabilir.`;
+                  if (dynamic > 0 && dynamic === total) return `⚠ ${total} elementin tamamı dinamik binding (:data-test="...") — RobotLocatorUpdater bunları işleyemiyor. Önce "ID Ekle" ile sabit id ekleyin.`;
+                  if (dynamic > 0) return `⚠ ${total} elementten ${dynamic} tanesi dinamik binding nedeniyle atlandı, kalan elementlerde data-test yok.`;
+                  return '⚠ Elementler tarandı ama hiçbirinde statik data-test attribute\'u yok.';
+                })()
               : `Örnek eşleşmeler: <code>${JSON.stringify(stats.debug_dt_to_id_sample || {})}</code><br>Robot dosyalarında <code>css=[data-test=\'X\']</code> veya <code>xpath=...@data-test=\'X\'</code> formatında eşleşen locator bulunamadı — Robot yolu doğru mu?`}
           </div>` : ''}
         ` : `
