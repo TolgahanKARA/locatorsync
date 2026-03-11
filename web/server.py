@@ -782,7 +782,7 @@ async def robot_update_preview(name: str):
                 report = updater.preview()
                 return {
                     "ok": True,
-                    "data": report.to_dict(),
+                    "data": {**report.to_dict(), "vue_path_used": str(cfg.vue_path)},
                     "duration": round(time.time() - t0, 2),
                 }
         except ValueError as e:
