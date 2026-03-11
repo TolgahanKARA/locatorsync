@@ -69,11 +69,19 @@ class RobotLocatorUpdater:
     Robot dosyalarındaki data-test tabanlı locatorları id ile değiştirir.
     """
 
+    # (pattern, replacement_fn) — replacement_fn(id_value) -> yeni locator stringi
+    # Önce spesifik pattern'lar denenir; eşleşme olursa sonraki atlanır.
     _DT_PATTERNS = [
-        re.compile(r"""css=\[data-test=['"]([^'"]+)['"]\]"""),
-        re.compile(r"""css=\[data-testid=['"]([^'"]+)['"]\]"""),
-        re.compile(r"""xpath=.*?@data-test=['"]([^'"]+)['"]"""),
-        re.compile(r"""xpath=.*?@data-testid=['"]([^'"]+)['"]"""),
+        # Tam selector: css=[data-test='X'] veya css=[data-testid='X']
+        (re.compile(r"""css=\[data-test=['"]([^'"]+)['"]\]"""),   lambda v: f"css=#{v}"),
+        (re.compile(r"""css=\[data-testid=['"]([^'"]+)['"]\]"""), lambda v: f"css=#{v}"),
+        # XPath: xpath=...@data-test='X'
+        (re.compile(r"""xpath=.*?@data-test=['"]([^'"]+)['"]"""),   lambda v: f"css=#{v}"),
+        (re.compile(r"""xpath=.*?@data-testid=['"]([^'"]+)['"]"""), lambda v: f"css=#{v}"),
+        # Gömülü: [data-test='X'] bir css selector içinde (örn. :has(), parent seçimi)
+        # css=.input:has(input[data-test='X']) label  →  css=.input:has(input#id) label
+        (re.compile(r"""\[data-test=['"]([^'"]+)['"]\]"""),   lambda v: f"#{v}"),
+        (re.compile(r"""\[data-testid=['"]([^'"]+)['"]\]"""), lambda v: f"#{v}"),
     ]
 
     def __init__(self, config: AppConfig):
@@ -148,7 +156,7 @@ class RobotLocatorUpdater:
                 continue
 
             for line_num, line in enumerate(lines, 1):
-                for pattern in self._DT_PATTERNS:
+                for pattern, make_new in self._DT_PATTERNS:
                     m = pattern.search(line)
                     if not m:
                         continue
@@ -158,7 +166,7 @@ class RobotLocatorUpdater:
                     if dt_value not in dt_to_id:
                         break
                     id_value = dt_to_id[dt_value]
-                    new_locator = f"css=#{id_value}"
+                    new_locator = make_new(id_value)
 
                     key = (str(robot_file), line_num, old_locator)
                     if key not in seen:
