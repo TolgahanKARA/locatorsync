@@ -105,19 +105,23 @@ class RobotLocatorUpdater:
             "robot_files": by_file,
             "vue_elements_with_id": len(dt_to_id),
             "robot_available": not bool(robot_errors),
-            # Debug: ilk 10 eşleşmeyi göster
+            # Debug: ilk 10 statik eşleşmeyi göster
             "debug_dt_to_id_sample": dict(list(dt_to_id.items())[:10]),
         }
         return report
 
     def _build_dt_to_id_map(self) -> dict[str, str]:
-        """Vue'dan hem data-test hem id olan elementlerin haritası: {data_test_value: id_value}"""
+        """Vue'dan hem data-test hem id olan elementlerin haritası: {data_test_value: id_value}
+        Yalnızca statik binding — dinamik (:data-test="expr") elementler hariç tutulur
+        çünkü runtime değerleri statik olarak belirlenemez."""
         scanner = VueScanner(self.config)
         elements = scanner.scan()
         dt_to_id: dict[str, str] = {}
         for el in elements:
             if not el.element_id:
                 continue
+            if el.is_dynamic_binding:
+                continue  # JS expression — gerçek data-test değeri bilinmiyor
             dt_value = el.data_test or el.data_testid
             if dt_value:
                 dt_to_id[dt_value] = el.element_id
