@@ -834,7 +834,11 @@
       <!-- Vue Projesi (Güncel) -->
       <div class="source-group">
         <div class="source-section-label">
-          <span><span class="material-icons" style="font-size:15px;vertical-align:middle;margin-right:4px;color:var(--pc-primary);">code</span>Vue Projesi <small>(Güncel)</small></span>
+          <span>
+            <span class="material-icons" style="font-size:15px;vertical-align:middle;margin-right:4px;color:var(--pc-primary);">code</span>
+            Vue Projesi <small>(Stage)</small>
+            <span class="material-icons" title="Stage ortamı — proje önden gittiği için kod bakımından en güncel sürümdür." style="font-size:14px;vertical-align:middle;margin-left:4px;color:#0071BC;cursor:help;">info_outline</span>
+          </span>
           <div class="source-toggle" id="toggle-vue">
             <button type="button" class="toggle-opt active" onclick="App.setSource('vue','local')">
               <span class="material-icons">folder</span>Yerel
@@ -866,7 +870,11 @@
       <!-- Eski Vue (Diff için) -->
       <div class="source-group">
         <div class="source-section-label">
-          <span><span class="material-icons" style="font-size:15px;vertical-align:middle;margin-right:4px;color:#adb5bd;">history</span>Eski Vue <small>(Fark analizi için, opsiyonel)</small></span>
+          <span>
+            <span class="material-icons" style="font-size:15px;vertical-align:middle;margin-right:4px;color:#adb5bd;">history</span>
+            Eski Vue / Preprod <small>(Fark analizi için, opsiyonel)</small>
+            <span class="material-icons" title="Preprod ortamı 3 haftada bir güncellenir — Stage'e kıyasla kod bakımından geride kalabilir." style="font-size:14px;vertical-align:middle;margin-left:4px;color:#adb5bd;cursor:help;">info_outline</span>
+          </span>
           <div class="source-toggle" id="toggle-vue-old">
             <button type="button" class="toggle-opt active" onclick="App.setSource('vue-old','local')">
               <span class="material-icons">folder</span>Yerel
