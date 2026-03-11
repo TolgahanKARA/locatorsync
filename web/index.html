@@ -1569,6 +1569,8 @@
     async runHeal() {
       if (!this.requireProject()) return;
       this.setLoading('btn-heal', true);
+      document.getElementById('heal-result').innerHTML =
+        `<div class="text-center py-4"><span class="spinner-dark"></span> Vue ve Robot taranıyor...</div>`;
       const r = await fetch(`/api/projects/${this.activeProject}/heal`, { method: 'POST' });
       const data = await r.json();
       this.setLoading('btn-heal', false);
@@ -1596,6 +1598,7 @@
       const idRows = this._healSuggestions.map((s, idx) => {
         const isActionable = s.mode === 'add_id' || s.mode === 'id_exists';
         const rowBg = s.mode === 'add_id' ? '' : s.mode === 'id_exists' ? 'style="background:#f5fff8;"' : 'style="background:#f8f9fa;"';
+        const btnTitle = s.mode === 'add_id' ? "Vue'a id ekle + Robot'ı güncelle" : "Robot locator'ını güncelle";
         return `<tr ${rowBg}>
           <td><span class="${confMap[s.confidence] || 'badge-low'}">${(s.confidence||'').toUpperCase()}</span></td>
           <td style="font-size:0.72rem;color:#6c757d;">${this.shortPath(s.file)}:${s.line}</td>
@@ -1611,7 +1614,7 @@
           </td>
           <td>
             ${isActionable
-              ? `<button class="btn-primary-custom btn-sm-custom" onclick="App.applyHealId([${idx}], false)" title="${s.mode === 'add_id' ? 'Vue\\'a id ekle + Robot\\'ı güncelle' : 'Robot locator\\'ını güncelle'}">Değiştir</button>`
+              ? `<button id="btn-heal-row-${idx}" class="btn-primary-custom btn-sm-custom" onclick="App.applyHealId([${idx}], false)" title="${btnTitle}">Değiştir</button>`
               : `<span style="font-size:0.72rem;color:#adb5bd;">Manuel inceleme</span>`}
           </td>
         </tr>`;
@@ -1644,8 +1647,8 @@
           <div class="card-header d-flex align-items-center justify-content-between">
             <span>Heal Önerileri (${this._healSuggestions.length})</span>
             ${idItems.length ? `<div class="d-flex gap-2">
-              <button class="btn-secondary-custom btn-sm-custom" onclick="App.applyHealId('all', true)">Dry-Run (Tümü)</button>
-              <button class="btn-danger-custom btn-sm-custom" onclick="App.applyHealId('all', false)">Tümünü Uygula (${idItems.length})</button>
+              <button id="btn-heal-all-dry" class="btn-secondary-custom btn-sm-custom" onclick="App.applyHealId('all', true)">Dry-Run (Tümü)</button>
+              <button id="btn-heal-all-live" class="btn-danger-custom btn-sm-custom" onclick="App.applyHealId('all', false)">Tümünü Uygula (${idItems.length})</button>
             </div>` : ''}
           </div>
           <div class="card-body p-0">
@@ -1676,7 +1679,8 @@
       if (!this.requireProject()) return;
       const allSugs = this._healSuggestions || [];
       let items;
-      if (indices === 'all') {
+      const isBatch = indices === 'all';
+      if (isBatch) {
         items = allSugs.filter(s => s.mode === 'add_id' || s.mode === 'id_exists');
       } else {
         items = indices.map(i => allSugs[i]).filter(Boolean).filter(s => s.mode === 'add_id' || s.mode === 'id_exists');
@@ -1688,6 +1692,18 @@
         : `⚠ ${items.filter(s=>s.mode==='add_id').length} Vue elementi güncellenecek, ${items.length} Robot locator değişecek. Devam?`;
       const ok = await this.confirm(dryRun ? 'Dry-Run' : 'Uygula', confirmMsg);
       if (!ok) return;
+
+      // Loading göster
+      const spinnerHtml = `<span class="spinner"></span> `;
+      if (isBatch) {
+        const batchBtn = document.getElementById(dryRun ? 'btn-heal-all-dry' : 'btn-heal-all-live');
+        if (batchBtn) { batchBtn.disabled = true; batchBtn.innerHTML = `${spinnerHtml}Uygulanıyor...`; }
+      } else {
+        indices.forEach(i => {
+          const btn = document.getElementById(`btn-heal-row-${i}`);
+          if (btn) { btn.disabled = true; btn.innerHTML = `${spinnerHtml}...`; }
+        });
+      }
 
       const payload = items.map(s => ({
         mode: s.mode,
@@ -1707,7 +1723,7 @@
         body: JSON.stringify({ dry_run: dryRun, items: payload }),
       });
       const data = await r.json();
-      if (!data.ok) { this.showToast(data.errors?.[0] || 'Hata oluştu.', 'error'); return; }
+      if (!data.ok) { this.showToast(data.errors?.[0] || 'Hata oluştu.', 'danger'); return; }
       this.showToast(dryRun ? 'Dry-run tamamlandı.' : 'Değişiklikler uygulandı!', dryRun ? 'info' : 'success');
       this.renderHealResult({ ok: true, data: { stats: this._healData?.stats || {}, suggestions: this._healSuggestions }, duration: 0 }, data.data);
     },
