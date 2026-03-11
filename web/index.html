@@ -1741,7 +1741,7 @@
     async runIdPatchPreview() {
       if (!this.requireProject()) return;
       const el = document.getElementById('id-patch-result');
-      el.innerHTML = this.loadingHtml('Analiz ediliyor...');
+      el.innerHTML = `<div class="text-center py-4"><span class="spinner-dark"></span> Analiz ediliyor...</div>`;
       const r = await fetch(`/api/projects/${this.activeProject}/id-patch`, { method: 'POST' });
       const data = await r.json();
       this.renderIdPatchResult(data, false);
