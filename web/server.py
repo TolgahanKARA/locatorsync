@@ -162,6 +162,32 @@ def build_config(vue_path: str, vue_old_path: str, robot_path: str, p: dict) -> 
     })
 
 
+# ─── Heal ID Yardımcıları ────────────────────────────────────────
+
+_HEAL_TAG_PREFIX = {
+    'button': 'btn', 'input': 'inp', 'span': 'spn',
+    'div': 'div', 'label': 'lbl', 'a': 'link',
+    'select': 'sel', 'textarea': 'txt', 'form': 'frm',
+    'img': 'img', 'ul': 'ul', 'li': 'li', 'p': 'p',
+    'section': 'sec', 'article': 'art', 'nav': 'nav',
+    'header': 'hdr', 'footer': 'ftr', 'main': 'main',
+    'table': 'tbl', 'tr': 'tr', 'td': 'td', 'th': 'th',
+}
+
+
+def _heal_dt_slug(dt_value: str) -> str:
+    import re as _re
+    slug = _re.sub(r'__+', '-', dt_value)
+    slug = _re.sub(r'[^a-zA-Z0-9-]', '-', slug)
+    slug = _re.sub(r'-+', '-', slug)
+    return slug.strip('-').lower()
+
+
+def _heal_generate_id(tag: str, dt_value: str) -> str:
+    prefix = _HEAL_TAG_PREFIX.get(tag.lower(), tag.lower()[:4])
+    return f"{prefix}-{_heal_dt_slug(dt_value)}"
+
+
 # ─── FastAPI App ──────────────────────────────────────────────────
 
 app = FastAPI(title="LocatorSync", version="1.0.0")
@@ -443,8 +469,56 @@ async def run_heal(name: str):
                 cross_result = matcher.analyze(vue_elements, extraction.locators, ignore_list=cfg.ignore_locators)
                 healer = HealerEngine(cfg)
                 heal_report = healer.heal(cross_result.matches, generate_patch=False)
-                rg = ReportService(cfg)
-                data = rg._heal_to_dict(heal_report)
+
+                # Locator -> MatchResult haritasi (suggestion zenginlestirme icin)
+                locator_to_match = {
+                    (m.locator.file, m.locator.line, m.locator.value): m
+                    for m in cross_result.matches
+                }
+
+                enriched = []
+                for s in heal_report.suggestions:
+                    sdict = {
+                        "original": s.original_value,
+                        "suggested": s.suggested_value,
+                        "type": s.suggested_type,
+                        "confidence": s.confidence,
+                        "confidence_score": s.confidence_score,
+                        "reason": s.reason,
+                        "patch_ready": s.patch_ready,
+                        "file": s.locator.file,
+                        "line": s.locator.line,
+                        "mode": "no_match",
+                    }
+                    key = (s.locator.file, s.locator.line, s.locator.value)
+                    match = locator_to_match.get(key)
+                    el = match.matched_element if match else None
+
+                    if el and (el.data_test or el.data_testid) and not el.element_id:
+                        dt_val = el.data_test or el.data_testid
+                        gen_id = _heal_generate_id(el.tag, dt_val)
+                        sdict.update({
+                            "mode": "add_id",
+                            "vue_file": el.file,
+                            "vue_line": el.line,
+                            "vue_tag": el.tag,
+                            "data_test_value": dt_val,
+                            "suggested_id": gen_id,
+                            "new_robot_locator": f"css=#{gen_id}",
+                        })
+                    elif el and el.element_id:
+                        sdict.update({
+                            "mode": "id_exists",
+                            "vue_file": el.file,
+                            "vue_line": el.line,
+                            "vue_tag": el.tag,
+                            "suggested_id": el.element_id,
+                            "new_robot_locator": f"css=#{el.element_id}",
+                        })
+
+                    enriched.append(sdict)
+
+                data = {"stats": heal_report.stats, "suggestions": enriched}
                 return {"ok": True, "data": data, "duration": round(time.time() - t0, 2)}
         except ValueError as e:
             return {"ok": False, "errors": [str(e)]}
@@ -503,6 +577,95 @@ async def apply_heal(name: str, body: ApplyBody):
                 data["patch_results"] = patch_results
                 data["dry_run"] = body.dry_run
                 return {"ok": True, "data": data, "duration": round(time.time() - t0, 2)}
+        except ValueError as e:
+            return {"ok": False, "errors": [str(e)]}
+
+    async with _analysis_lock:
+        return await asyncio.to_thread(_blocking)
+
+
+# ─── Heal Apply ID ───────────────────────────────────────────────
+
+class HealApplyIdBody(BaseModel):
+    dry_run: bool = True
+    items: List[dict] = []
+
+
+@app.post("/api/projects/{name}/heal/apply-id")
+async def heal_apply_id(name: str, body: HealApplyIdBody):
+    """Seçili heal önerilerini uygula: Vue'ya id ekle + Robot locator'ını güncelle."""
+    if _analysis_lock.locked():
+        return {"ok": False, "errors": ["Baska bir analiz devam ediyor. Lutfen bekleyin."], "busy": True}
+    p = get_project_data(name)
+
+    if not body.dry_run:
+        if p.get("vue_source", "local") == "git":
+            return {"ok": False, "errors": ["Git'ten çekilen Vue projesine yazma yapılamaz."]}
+        if p.get("robot_source", "local") == "git":
+            return {"ok": False, "errors": ["Git'ten çekilen Robot projesine yazma yapılamaz."]}
+
+    def _blocking():
+        if body.dry_run:
+            vue_count = sum(1 for it in body.items if it.get("mode") == "add_id")
+            robot_count = sum(1 for it in body.items if it.get("robot_file"))
+            return {"ok": True, "data": {
+                "dry_run": True,
+                "would_patch_vue": vue_count,
+                "would_patch_robot": robot_count,
+                "applied_vue": [], "applied_robot": [], "failed": [],
+            }}
+
+        try:
+            from collections import defaultdict as _dd
+            from core.patcher.IdFromDataTestPatcher import IdSuggestion, RobotUpdate, IdFromDataTestPatcher
+
+            with resolve_paths(p) as (vue_path, _, robot_path):
+                cfg = build_config(vue_path, "", robot_path, p)
+                patcher = IdFromDataTestPatcher(cfg)
+
+                # Vue: id eklenecek elementler
+                vue_sugs_by_file = _dd(list)
+                for item in body.items:
+                    if item.get("mode") == "add_id" and item.get("vue_file") and item.get("suggested_id"):
+                        sug = IdSuggestion(
+                            vue_file=item["vue_file"],
+                            vue_line=item["vue_line"],
+                            vue_tag=item.get("vue_tag", "div"),
+                            data_test_value=item.get("data_test_value", ""),
+                            attr_source="data-test",
+                            generated_id=item["suggested_id"],
+                        )
+                        vue_sugs_by_file[item["vue_file"]].append(sug)
+
+                applied_vue, applied_robot, failed = [], [], []
+
+                for file_path, sugs in vue_sugs_by_file.items():
+                    result = patcher._patch_vue_file(file_path, sugs)
+                    applied_vue.extend(result["applied"])
+                    failed.extend(result["failed"])
+
+                # Robot: locator güncellemesi
+                robot_upds = []
+                for item in body.items:
+                    if item.get("robot_file") and item.get("new_robot_locator") and item.get("original"):
+                        robot_upds.append(RobotUpdate(
+                            robot_file=item["robot_file"],
+                            robot_line=item["robot_line"],
+                            old_value=item["original"],
+                            new_value=item["new_robot_locator"],
+                        ))
+
+                if robot_upds:
+                    result = patcher._patch_robot_files(robot_upds)
+                    applied_robot.extend(result["applied"])
+                    failed.extend(result["failed"])
+
+                return {"ok": True, "data": {
+                    "dry_run": False,
+                    "applied_vue": applied_vue,
+                    "applied_robot": applied_robot,
+                    "failed": failed,
+                }}
         except ValueError as e:
             return {"ok": False, "errors": [str(e)]}
 

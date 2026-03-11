@@ -648,7 +648,7 @@
         <div class="d-flex align-items-start justify-content-between">
           <div>
             <h5>Vue Stabilite Analizi</h5>
-            <p>Tüm Vue elementlerinin locator kırılganlık skorunu hesaplar ve dağılımını gösterir.</p>
+            <p>Tüm Vue elementlerinin locator kırılganlık skorunu hesaplar. <code class="code">data-test</code> mevcut ama <code class="code">id</code> eksik olan elementleri tespit eder — bunlar <strong>ID Ekle</strong> sekmesinden düzeltilebilir.</p>
           </div>
           <button id="btn-vue-only" class="btn-primary-custom" onclick="App.runVueOnly()">
             <span class="material-icons" style="font-size:14px;vertical-align:middle;margin-right:4px;">play_arrow</span>Çalıştır
@@ -664,7 +664,7 @@
         <div class="d-flex align-items-start justify-content-between">
           <div>
             <h5>Çapraz Analiz</h5>
-            <p>Robot Framework locator'larını Vue bileşenleriyle karşılaştırır. Kırık ve riskli locator'ları bulur.</p>
+            <p>Vue ve Robot projelerini birlikte tarar. Kırık ve riskli locator'ları bulur; <code class="code">id</code> tabanlı locator kullanımını önerir.</p>
           </div>
           <button id="btn-analyze" class="btn-primary-custom" onclick="App.runAnalyze()">
             <span class="material-icons" style="font-size:14px;vertical-align:middle;margin-right:4px;">play_arrow</span>Çalıştır
@@ -680,7 +680,7 @@
         <div class="d-flex align-items-start justify-content-between">
           <div>
             <h5>Heal</h5>
-            <p>Kırık locator'lar için otomatik düzeltme önerileri üretir ve isteğe bağlı olarak uygular.</p>
+            <p>Kırık ve riskli locator'lar için <code class="code">id</code> tabanlı düzeltme önerileri üretir. Vue elementine <code class="code">id</code> ekler ve Robot locator'ını günceller.</p>
           </div>
           <button id="btn-heal" class="btn-primary-custom" onclick="App.runHeal()">
             <span class="material-icons" style="font-size:14px;vertical-align:middle;margin-right:4px;">auto_fix_high</span>Önerileri Getir
@@ -1355,12 +1355,20 @@
       const total = dist.total || 1;
       const worst10 = [...d.elements].sort((a,b) => a.stability_score - b.stability_score).slice(0,10);
 
+      const noIdElements = d.elements.filter(e => (e.data_test || e.data_testid) && !e.id);
+      const noIdRows = noIdElements.slice(0, 20).map(e => `<tr>
+        <td style="font-size:0.75rem;color:#6c757d;">${this.shortPath(e.file)}:${e.line}</td>
+        <td><span class="code">&lt;${e.tag}&gt;</span></td>
+        <td><span class="code" style="color:var(--pc-primary);font-size:0.75rem;">${e.data_test || e.data_testid}</span></td>
+        <td style="color:#adb5bd;font-size:0.75rem;">id eksik</td>
+      </tr>`).join('');
+
       el.innerHTML = `
         <div class="row g-3 mb-4">
           ${this.statCardHtml('Taranan Dosya', s.files_scanned, 'folder_open', '')}
           ${this.statCardHtml('İnteraktif Element', s.total_interactive, 'touch_app', '')}
           ${this.statCardHtml('Ort. Stabilite', s.avg_stability_score, 'trending_up', this.scoreClass(s.avg_stability_score))}
-          ${this.statCardHtml('Toplam Element', s.total_elements, 'widgets', '')}
+          ${this.statCardHtml('ID Eksik', noIdElements.length, 'label_off', noIdElements.length > 0 ? 'score-medium' : 'score-high')}
         </div>
         <div class="row g-4 mb-4">
           <div class="col-md-6">
@@ -1376,7 +1384,7 @@
           </div>
           <div class="col-md-6">
             <div class="card h-100">
-              <div class="card-header">Özet</div>
+              <div class="card-header">Selector Özeti</div>
               <div class="card-body">
                 <div class="d-flex justify-content-between mb-2" style="font-size:0.875rem;">
                   <span style="color:#6c757d;">data-test kullanan</span>
@@ -1387,8 +1395,8 @@
                   <span class="fw-semibold" style="color:var(--pc-info);">${d.elements.filter(e=>e.id).length}</span>
                 </div>
                 <div class="d-flex justify-content-between mb-2" style="font-size:0.875rem;">
-                  <span style="color:#6c757d;">Sadece class</span>
-                  <span class="fw-semibold score-medium">${d.elements.filter(e=>!e.data_test&&!e.data_testid&&!e.id&&e.classes?.length).length}</span>
+                  <span style="color:#6c757d;">data-test var, <strong>id yok</strong></span>
+                  <span class="fw-semibold score-medium">${noIdElements.length}</span>
                 </div>
                 <div class="d-flex justify-content-between" style="font-size:0.875rem;">
                   <span style="color:#6c757d;">Selector yok</span>
@@ -1398,6 +1406,21 @@
             </div>
           </div>
         </div>
+        ${noIdElements.length ? `
+        <div class="card mb-4">
+          <div class="card-header d-flex align-items-center justify-content-between">
+            <span><span class="material-icons" style="font-size:15px;vertical-align:middle;margin-right:4px;color:#ffa21d;">label_off</span>data-test var, ID eksik (${noIdElements.length})</span>
+            <span style="font-size:0.75rem;color:#adb5bd;">ID Ekle sekmesinden otomatik düzeltilebilir</span>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead><tr><th>Dosya:Satır</th><th>Tag</th><th>data-test Değeri</th><th>Durum</th></tr></thead>
+              <tbody>${noIdRows}</tbody>
+            </table>
+            </div>
+          </div>
+        </div>` : ''}
         <div class="card">
           <div class="card-header">En Kırılgan 10 Element</div>
           <div class="card-body p-0">
@@ -1549,76 +1572,95 @@
       const r = await fetch(`/api/projects/${this.activeProject}/heal`, { method: 'POST' });
       const data = await r.json();
       this.setLoading('btn-heal', false);
+      if (data.ok) this._healData = data.data;
       this.renderHealResult(data);
     },
 
-    async applyHeal(dryRun) {
-      if (!this.requireProject()) return;
-      const confirmMsg = dryRun
-        ? 'Dry-run modunda ne değişeceği simüle edilecek, dosya yazılmayacak.'
-        : '⚠ Patch doğrudan uygulanacak. Robot dosyalarının yedeği otomatik alınır (.bak). Devam etmek istediğinizden emin misiniz?';
-      const ok = await this.confirm(dryRun ? 'Dry-Run Başlat' : 'Patch Uygula', confirmMsg);
-      if (!ok) return;
+    _healSuggestions: [],
+    _healData: null,
 
-      const btnId = dryRun ? 'btn-dry-run' : 'btn-apply-live';
-      this.setLoadingCustom(btnId, true, 'Uygulanıyor...');
-      const r = await fetch(`/api/projects/${this.activeProject}/heal/apply`, {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ dry_run: dryRun, only_high: false })
-      });
-      const data = await r.json();
-      this.setLoadingCustom(btnId, false, dryRun ? 'Dry-Run' : 'Patch Uygula');
-      this.renderHealResult(data, true);
-    },
-
-    renderHealResult(res, showPatchResults = false) {
+    renderHealResult(res, applyResult = null) {
       const el = document.getElementById('heal-result');
       if (!res.ok) { el.innerHTML = this.errorHtml(res.errors || [res.error]); return; }
       const d = res.data;
       const stats = d.stats || {};
+      this._healSuggestions = d.suggestions || [];
 
       const confMap = { high: 'badge-high', medium: 'badge-medium', low: 'badge-low' };
-      const sugRows = (d.suggestions || []).map(s => `<tr>
-        <td><span class="${confMap[s.confidence] || 'badge-low'}">${(s.confidence||'').toUpperCase()}</span></td>
-        <td style="font-size:0.75rem;color:#6c757d;">${this.shortPath(s.file)}:${s.line}</td>
-        <td><span class="code" style="color:var(--pc-danger);font-size:0.75rem;">${s.original}</span></td>
-        <td><span class="code" style="color:var(--pc-success);font-size:0.75rem;">${s.suggested || '(öneri yok)'}</span></td>
-        <td style="font-size:0.75rem;color:#6c757d;">${s.reason || '—'}</td>
-      </tr>`).join('');
+      const modeColor = { add_id: '#0071bc', id_exists: '#17C666', no_match: '#6c757d' };
+      const modeLabel = { add_id: 'ID Eklenecek', id_exists: 'ID Mevcut', no_match: 'Manuel' };
 
-      let patchHtml = '';
-      if (showPatchResults && d.patch_results) {
-        const pr = d.patch_results;
-        const isDry = d.dry_run;
-        patchHtml = `<div class="alert ${isDry ? 'alert-info' : 'alert-success'} mb-4" style="font-size:0.875rem;">
-          <strong>${isDry ? 'Dry-Run Sonucu' : 'Patch Uygulandı'}</strong> —
-          ${(pr.applied||[]).length} dosya ${isDry ? 'uygulanabilir' : 'güncellendi'}
-          ${(pr.failed||[]).length ? `<span class="ms-3 text-danger">${pr.failed.length} hata</span>` : ''}
+      const idItems = this._healSuggestions.filter(s => s.mode === 'add_id' || s.mode === 'id_exists');
+      const manualItems = this._healSuggestions.filter(s => s.mode === 'no_match');
+
+      const idRows = this._healSuggestions.map((s, idx) => {
+        const isActionable = s.mode === 'add_id' || s.mode === 'id_exists';
+        const rowBg = s.mode === 'add_id' ? '' : s.mode === 'id_exists' ? 'style="background:#f5fff8;"' : 'style="background:#f8f9fa;"';
+        return `<tr ${rowBg}>
+          <td><span class="${confMap[s.confidence] || 'badge-low'}">${(s.confidence||'').toUpperCase()}</span></td>
+          <td style="font-size:0.72rem;color:#6c757d;">${this.shortPath(s.file)}:${s.line}</td>
+          <td><span class="code" style="color:var(--pc-danger);font-size:0.72rem;">${s.original}</span></td>
+          <td style="font-size:0.72rem;color:#6c757d;">${s.vue_file ? this.shortPath(s.vue_file)+':'+(s.vue_line||'') : '—'}</td>
+          <td>${isActionable
+            ? `<span class="code" style="color:#0071bc;font-size:0.72rem;">${s.suggested_id}</span><br><span style="font-size:0.68rem;color:#adb5bd;">önerilen id kullanılmıyor</span>`
+            : `<span style="color:#adb5bd;font-size:0.72rem;">—</span>`}
+          </td>
+          <td>${isActionable
+            ? `<span class="code" style="color:var(--pc-success);font-size:0.72rem;">${s.new_robot_locator}</span>`
+            : `<span class="code" style="color:#6c757d;font-size:0.72rem;">${s.suggested||'—'}</span>`}
+          </td>
+          <td>
+            ${isActionable
+              ? `<button class="btn-primary-custom btn-sm-custom" onclick="App.applyHealId([${idx}], false)" title="${s.mode === 'add_id' ? 'Vue\\'a id ekle + Robot\\'ı güncelle' : 'Robot locator\\'ını güncelle'}">Değiştir</button>`
+              : `<span style="font-size:0.72rem;color:#adb5bd;">Manuel inceleme</span>`}
+          </td>
+        </tr>`;
+      }).join('');
+
+      let applyHtml = '';
+      if (applyResult) {
+        const isDry = applyResult.dry_run;
+        const vCount = (applyResult.applied_vue || []).length;
+        const rCount = (applyResult.applied_robot || []).length;
+        const fCount = (applyResult.failed || []).length;
+        applyHtml = `<div class="alert ${isDry ? 'alert-info' : 'alert-success'} mb-4" style="font-size:0.875rem;">
+          <strong>${isDry ? 'Dry-Run' : 'Uygulandı'}</strong> —
+          ${isDry ? `${applyResult.would_patch_vue || 0} Vue + ${applyResult.would_patch_robot || 0} Robot satırı güncellenecek`
+                  : `${vCount} Vue elementi güncellendi, ${rCount} Robot locator güncellendi`}
+          ${fCount ? `<span class="ms-3 text-danger">${fCount} hata</span>` : ''}
         </div>`;
       }
 
       el.innerHTML = `
         <div class="row g-3 mb-4">
           ${this.statCardHtml('Toplam Öneri', stats.total_healed || 0, 'lightbulb', '')}
-          ${this.statCardHtml('Yüksek Güven', stats.high_confidence || 0, 'verified', 'score-high')}
-          ${this.statCardHtml('Orta Güven', stats.medium_confidence || 0, 'help_outline', 'score-medium')}
-          ${this.statCardHtml('Düşük Güven', stats.low_confidence || 0, 'info', 'score-critical')}
+          ${this.statCardHtml('ID Eklenecek', idItems.filter(s=>s.mode==='add_id').length, 'add_circle', idItems.filter(s=>s.mode==='add_id').length > 0 ? 'score-medium' : '')}
+          ${this.statCardHtml('ID Mevcut', idItems.filter(s=>s.mode==='id_exists').length, 'check_circle', idItems.filter(s=>s.mode==='id_exists').length > 0 ? 'score-high' : '')}
+          ${this.statCardHtml('Manuel', manualItems.length, 'help_outline', manualItems.length > 0 ? 'score-critical' : '')}
         </div>
-        ${patchHtml}
-        ${(d.suggestions||[]).length ? `
+        ${applyHtml}
+        ${this._healSuggestions.length ? `
         <div class="card">
           <div class="card-header d-flex align-items-center justify-content-between">
-            <span>Öneriler (${d.suggestions.length})</span>
-            <div class="d-flex gap-2">
-              <button id="btn-dry-run" onclick="App.applyHeal(true)" class="btn-secondary-custom btn-sm-custom">Dry-Run</button>
-              <button id="btn-apply-live" onclick="App.applyHeal(false)" class="btn-danger-custom btn-sm-custom">Patch Uygula</button>
-            </div>
+            <span>Heal Önerileri (${this._healSuggestions.length})</span>
+            ${idItems.length ? `<div class="d-flex gap-2">
+              <button class="btn-secondary-custom btn-sm-custom" onclick="App.applyHealId('all', true)">Dry-Run (Tümü)</button>
+              <button class="btn-danger-custom btn-sm-custom" onclick="App.applyHealId('all', false)">Tümünü Uygula (${idItems.length})</button>
+            </div>` : ''}
           </div>
           <div class="card-body p-0">
             <div class="table-responsive">
-            <table class="table table-hover mb-0">
-              <thead><tr><th style="width:85px">Güven</th><th>Dosya:Satır</th><th>Eski Locator</th><th>Yeni Öneri</th><th>Sebep</th></tr></thead>
-              <tbody>${sugRows}</tbody>
+            <table class="table table-hover mb-0" style="font-size:0.8rem;">
+              <thead><tr>
+                <th style="width:80px">Güven</th>
+                <th>Robot Dosya:Satır</th>
+                <th>Mevcut Locator</th>
+                <th>Vue Elementi</th>
+                <th>Önerilen ID</th>
+                <th>Yeni Locator</th>
+                <th style="width:100px">İşlem</th>
+              </tr></thead>
+              <tbody>${idRows}</tbody>
             </table>
             </div>
           </div>
@@ -1628,6 +1670,46 @@
         </div></div>`}
         ${this.durationHtml(res.duration)}
         ${this.slackBtn('heal', d, res.duration)}`;
+    },
+
+    async applyHealId(indices, dryRun) {
+      if (!this.requireProject()) return;
+      const allSugs = this._healSuggestions || [];
+      let items;
+      if (indices === 'all') {
+        items = allSugs.filter(s => s.mode === 'add_id' || s.mode === 'id_exists');
+      } else {
+        items = indices.map(i => allSugs[i]).filter(Boolean).filter(s => s.mode === 'add_id' || s.mode === 'id_exists');
+      }
+      if (!items.length) { this.showToast('Uygulanabilir öneri yok.', 'warning'); return; }
+
+      const confirmMsg = dryRun
+        ? `Dry-run: ${items.length} öneri simüle edilecek (dosya değişmeyecek).`
+        : `⚠ ${items.filter(s=>s.mode==='add_id').length} Vue elementi güncellenecek, ${items.length} Robot locator değişecek. Devam?`;
+      const ok = await this.confirm(dryRun ? 'Dry-Run' : 'Uygula', confirmMsg);
+      if (!ok) return;
+
+      const payload = items.map(s => ({
+        mode: s.mode,
+        vue_file: s.vue_file || null,
+        vue_line: s.vue_line || null,
+        vue_tag: s.vue_tag || 'div',
+        data_test_value: s.data_test_value || '',
+        suggested_id: s.suggested_id || '',
+        robot_file: s.file,
+        robot_line: s.line,
+        original: s.original,
+        new_robot_locator: s.new_robot_locator || '',
+      }));
+
+      const r = await fetch(`/api/projects/${this.activeProject}/heal/apply-id`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ dry_run: dryRun, items: payload }),
+      });
+      const data = await r.json();
+      if (!data.ok) { this.showToast(data.errors?.[0] || 'Hata oluştu.', 'error'); return; }
+      this.showToast(dryRun ? 'Dry-run tamamlandı.' : 'Değişiklikler uygulandı!', dryRun ? 'info' : 'success');
+      this.renderHealResult({ ok: true, data: { stats: this._healData?.stats || {}, suggestions: this._healSuggestions }, duration: 0 }, data.data);
     },
 
     // ── Patch Vue ─────────────────────────────────────────────
