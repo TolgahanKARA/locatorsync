@@ -105,6 +105,8 @@ class RobotLocatorUpdater:
             "robot_files": by_file,
             "vue_elements_with_id": len(dt_to_id),
             "robot_available": not bool(robot_errors),
+            # Debug: ilk 10 eşleşmeyi göster
+            "debug_dt_to_id_sample": dict(list(dt_to_id.items())[:10]),
         }
         return report
 
