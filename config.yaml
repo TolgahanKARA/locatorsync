@@ -1,0 +1,33 @@
+vue_project:
+  path: "demo/vue-app"   # Kendi Vue projeniz: C:\Users\tolga\projelerim\my-vue-app
+
+robot_project:
+  path: "demo/robot-tests"   # Kendi Robot projeniz: C:\Users\tolga\projelerim\robot-tests
+
+analysis:
+  stability_threshold: 50
+  critical_threshold: 30
+  vue_extensions: [".vue"]
+  robot_extensions: [".robot", ".resource", ".txt"]
+  ignore_dirs:
+    - "node_modules"
+    - ".git"
+    - "dist"
+    - "build"
+    - "__pycache__"
+    - "venv"
+
+healing:
+  backup_before_patch: true
+  auto_apply_high_confidence: false
+  min_confidence_score: 0.6
+
+reporting:
+  output_dir: "reports"
+  save_json: true
+  report_prefix: "vue_test_healer"
+
+# Görmezden gelinecek locator'lar
+ignore_locators:
+  - "css=body"
+  - "xpath=//html"

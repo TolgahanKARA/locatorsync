@@ -1,0 +1,2061 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LocatorSync</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230071BC'/><path d='M8 16h4v-5h4v5h4v4h-4v5h-4v-5H8z' fill='white'/><path d='M22 10l2 2-8 8-4-4 2-2 2 2z' fill='%23FF6600'/></svg>" />
+
+  <!-- Bootstrap 5 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+  <!-- Material Icons -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Two+Tone" />
+  <!-- Feather Icons -->
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+  <!-- Google Fonts: Inter -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+
+  <style>
+    :root {
+      --pc-primary: #0071BC;
+      --pc-primary-rgb: 0, 113, 188;
+      --pc-orange: #FF6600;
+      --pc-success: #17C666;
+      --pc-danger: #EA4D4D;
+      --pc-warning: #ffa21d;
+      --pc-info: #3ec9d6;
+      --pc-body-bg: #f0f2f8;
+      --pc-body-color: #293240;
+      --pc-sidebar-bg: #1c232f;
+      --pc-sidebar-text: #ced4dc;
+      --pc-sidebar-icon: #FF6600;
+      --pc-header-height: 70px;
+      --pc-sidebar-width: 280px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: "Inter", sans-serif;
+      font-size: 0.875rem;
+      background-color: var(--pc-body-bg);
+      color: var(--pc-body-color);
+      margin: 0;
+    }
+
+    /* ── Sidebar ── */
+    .pc-sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: var(--pc-sidebar-width);
+      height: 100vh;
+      background: var(--pc-sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      z-index: 1050;
+      overflow-y: auto;
+    }
+    .pc-sidebar .m-header {
+      height: var(--pc-header-height);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      flex-shrink: 0;
+    }
+    .pc-sidebar .m-header .brand-title {
+      color: #fff;
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .pc-sidebar .m-header .brand-title span.icon-wrap {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--pc-orange) 0%, #FF8C00 100%);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(255,102,0,0.4);
+    }
+    .pc-sidebar .m-header .brand-title span.icon-wrap svg {
+      width: 20px;
+      height: 20px;
+      stroke: #fff;
+      fill: none;
+    }
+
+    .navbar-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 0;
+    }
+    .pc-navbar {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .pc-navbar .pc-item {
+      position: relative;
+    }
+    .pc-navbar .pc-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 20px;
+      color: var(--pc-sidebar-text);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      cursor: pointer;
+      white-space: nowrap;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+    }
+    .pc-navbar .pc-link:hover {
+      color: #fff;
+      background: rgba(255,255,255,0.06);
+    }
+    .pc-navbar .pc-link.active {
+      color: #fff;
+      background: rgba(0,113,188,0.18);
+      border-left: 3px solid var(--pc-orange);
+    }
+    .pc-navbar .pc-link {
+      border-left: 3px solid transparent;
+    }
+    .pc-navbar .pc-link .nav-icon {
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+      stroke: var(--pc-sidebar-icon);
+      filter: drop-shadow(0 0 3px rgba(255,102,0,0.3));
+      transition: stroke 0.2s, filter 0.2s;
+    }
+    .pc-navbar .pc-link.active .nav-icon {
+      stroke: var(--pc-orange);
+      filter: drop-shadow(0 0 5px rgba(255,102,0,0.5));
+    }
+    .pc-navbar .pc-link:hover .nav-icon {
+      stroke: #fff;
+      filter: none;
+    }
+
+    .pc-navbar .pc-nav-label {
+      padding: 12px 20px 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #505a67;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* Projects in sidebar */
+    .sidebar-projects {
+      padding: 0 12px;
+      margin-bottom: 4px;
+    }
+    .sidebar-proj-item {
+      padding: 7px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      color: var(--pc-sidebar-text);
+      transition: background 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sidebar-proj-item:hover { background: rgba(255,255,255,0.06); }
+    .sidebar-proj-item.active { background: var(--pc-primary); color: #fff; }
+    .sidebar-proj-item .material-icons { font-size: 14px; opacity: 0.6; }
+
+    .sidebar-divider {
+      height: 1px;
+      background: rgba(255,255,255,0.07);
+      margin: 8px 0;
+    }
+
+    /* ── Header ── */
+    .pc-header {
+      position: fixed;
+      top: 0;
+      left: var(--pc-sidebar-width);
+      right: 0;
+      height: var(--pc-header-height);
+      background: #fff;
+      border-bottom: 1px solid #e9ecef;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      z-index: 1040;
+      box-shadow: 0 1px 0 0 #e9ecef;
+    }
+    .pc-header .page-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #1c232f;
+      margin: 0;
+    }
+    .pc-header .active-project-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      color: #6c757d;
+    }
+    .pc-header .active-project-badge .proj-name {
+      background: rgba(0,113,188,0.1);
+      color: var(--pc-primary);
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+
+    /* ── Main content ── */
+    .pc-container {
+      margin-left: var(--pc-sidebar-width);
+      margin-top: var(--pc-header-height);
+      min-height: calc(100vh - var(--pc-header-height));
+    }
+    .pcoded-content {
+      padding: 24px;
+    }
+
+    /* ── Page header ── */
+    .page-header {
+      background: #fff;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px -1px rgba(0,0,0,0.07);
+    }
+    .page-header h5 {
+      margin: 0;
+      font-weight: 600;
+      font-size: 1rem;
+    }
+    .page-header p {
+      margin: 4px 0 0;
+      font-size: 0.8rem;
+      color: #6c757d;
+    }
+
+    /* ── Cards ── */
+    .card {
+      border: 1px solid #e9ecef;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px -1px rgba(0,0,0,0.07);
+    }
+    .card-header {
+      background: #fff;
+      border-bottom: 1px solid #e9ecef;
+      padding: 14px 20px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: #293240;
+      border-radius: 8px 8px 0 0 !important;
+    }
+    .card-body { padding: 20px; }
+
+    /* ── Stat cards ── */
+    .stat-card { text-align: center; }
+    .stat-card .stat-val {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .stat-card .stat-label {
+      font-size: 0.75rem;
+      color: #6c757d;
+      margin-top: 6px;
+    }
+
+    /* ── Badges ── */
+    .badge-critical { background: #fde8e8; color: var(--pc-danger); padding: 3px 9px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; display: inline-block; }
+    .badge-warning  { background: #fff3cd; color: #b35f00; padding: 3px 9px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; display: inline-block; }
+    .badge-info     { background: #cff4fc; color: #0c6e7a; padding: 3px 9px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; display: inline-block; }
+    .badge-high     { background: #d4edda; color: #155724; padding: 3px 9px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; display: inline-block; }
+    .badge-medium   { background: #fff3cd; color: #856404; padding: 3px 9px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; display: inline-block; }
+    .badge-low      { background: #fde8e8; color: var(--pc-danger); padding: 3px 9px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; display: inline-block; }
+
+    /* ── Tables ── */
+    .table { font-size: 0.8125rem; }
+    .table th { font-weight: 600; color: #495057; background: #f8f9fa; border-bottom: 1px solid #dee2e6; }
+    .table td { color: #293240; vertical-align: middle; }
+    .table tbody tr:hover td { background: #f8f9fa; }
+
+    /* ── Code spans ── */
+    .code {
+      font-family: 'Courier New', monospace;
+      font-size: 0.75rem;
+      background: #f1f3f5;
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+
+    /* ── Buttons ── */
+    .btn-primary-custom {
+      background: var(--pc-primary);
+      color: #fff;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, box-shadow 0.15s;
+    }
+    .btn-primary-custom:hover { background: #005a99; box-shadow: 0 4px 10px rgba(0,113,188,0.3); }
+    .btn-primary-custom:disabled { background: #adb5bd; cursor: not-allowed; box-shadow: none; }
+    .btn-danger-custom {
+      background: var(--pc-danger);
+      color: #fff;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-danger-custom:hover { background: #c83333; }
+    .btn-secondary-custom {
+      background: #f8f9fa;
+      color: #495057;
+      border: 1px solid #dee2e6;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-secondary-custom:hover { background: #e9ecef; }
+    .btn-sm-custom {
+      padding: 5px 12px;
+      font-size: 0.75rem;
+    }
+
+    /* ── Forms ── */
+    .form-control-custom {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #ced4da;
+      border-radius: 6px;
+      font-size: 0.8125rem;
+      font-family: "Inter", sans-serif;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .form-control-custom:focus {
+      border-color: var(--pc-primary);
+      box-shadow: 0 0 0 3px rgba(114,103,239,0.15);
+    }
+    .form-label-custom {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: #495057;
+      display: block;
+      margin-bottom: 5px;
+    }
+    .form-text-custom { font-size: 0.72rem; color: #6c757d; margin-top: 3px; }
+
+    /* ── Spinner ── */
+    .spinner {
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      width: 14px;
+      height: 14px;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .spinner-dark {
+      border: 2px solid #dee2e6;
+      border-top-color: var(--pc-primary);
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-box {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      width: 100%;
+      max-width: 520px;
+      margin: 16px;
+      overflow: hidden;
+    }
+    .modal-box .modal-header-custom {
+      background: var(--pc-primary);
+      color: #fff;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal-box .modal-header-custom h5 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    .modal-box .modal-header-custom button {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.7);
+      font-size: 1.3rem;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0;
+    }
+    .modal-box .modal-header-custom button:hover { color: #fff; }
+    .modal-body-custom { padding: 20px; }
+    .modal-footer-custom {
+      padding: 14px 20px;
+      border-top: 1px solid #e9ecef;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    /* ── Progress bar ── */
+    .prog-bar-wrap { height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden; }
+    .prog-bar { height: 8px; border-radius: 4px; transition: width 0.4s; }
+
+    /* ── Dist bar ── */
+    .dist-bar-wrap { height: 6px; background: #e9ecef; border-radius: 3px; overflow: hidden; }
+    .dist-bar { height: 6px; border-radius: 3px; }
+
+    /* ── Empty state ── */
+    .empty-state { text-align: center; padding: 50px 20px; color: #adb5bd; }
+    .empty-state .material-icons { font-size: 48px; margin-bottom: 12px; display: block; }
+
+    /* ── Score colors ── */
+    .score-high { color: var(--pc-success); }
+    .score-medium { color: var(--pc-warning); }
+    .score-low { color: #fd7e14; }
+    .score-critical { color: var(--pc-danger); }
+
+    /* ── Tab contents ── */
+    .tab-content-panel { display: none; }
+    .tab-content-panel.active { display: block; }
+
+    /* ── Reports list ── */
+    .report-link {
+      display: block;
+      padding: 5px 0;
+      font-size: 0.75rem;
+      color: rgba(114,103,239,0.85);
+      text-decoration: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .report-link:hover { color: #fff; }
+
+    /* ── Source Toggle ── */
+    .source-toggle {
+      display: inline-flex;
+      background: #f1f3f5;
+      border-radius: 6px;
+      padding: 3px;
+      gap: 2px;
+    }
+    .toggle-opt {
+      padding: 5px 14px;
+      border: none;
+      background: none;
+      border-radius: 4px;
+      font-size: 0.775rem;
+      font-weight: 500;
+      color: #6c757d;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s;
+      font-family: "Inter", sans-serif;
+    }
+    .toggle-opt.active {
+      background: var(--pc-primary);
+      color: #fff;
+      box-shadow: 0 2px 6px rgba(114,103,239,0.35);
+      font-weight: 600;
+    }
+    .toggle-opt.active .material-icons { color: #fff; }
+    .toggle-opt .material-icons { font-size: 14px; }
+    .source-section-label {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: #293240;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .source-section-label small { font-weight: 400; color: #adb5bd; }
+    .source-group { border: 1px solid #e9ecef; border-radius: 8px; padding: 14px; margin-bottom: 12px; }
+
+    /* ── Mobile ── */
+    @media (max-width: 768px) {
+      .pc-sidebar { transform: translateX(-100%); transition: transform 0.3s; }
+      .pc-sidebar.open { transform: translateX(0); }
+      .pc-header { left: 0; }
+      .pc-container { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════ SIDEBAR -->
+<nav class="pc-sidebar">
+  <div class="m-header">
+    <div class="brand-title">
+      <span class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C12 22 20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z"/></svg></span>
+      <span>LocatorSync</span>
+    </div>
+  </div>
+
+  <div class="navbar-content">
+    <ul class="pc-navbar">
+
+      <li class="pc-nav-label">Analizler</li>
+
+      <li class="pc-item">
+        <button class="pc-link active" data-tab="audit" onclick="App.switchTab('audit')">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 11L12 14L22 4M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Data-Test Audit</span>
+        </button>
+      </li>
+      <li class="pc-item">
+        <button class="pc-link" data-tab="vue-only" onclick="App.switchTab('vue-only')">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 20V10M12 20V4M6 20V14" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Vue Analizi</span>
+        </button>
+      </li>
+      <li class="pc-item">
+        <button class="pc-link" data-tab="analyze" onclick="App.switchTab('analyze')">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 18C15 19.6569 16.3431 21 18 21C19.6569 21 21 19.6569 21 18C21 16.3431 19.6569 15 18 15C16.3431 15 15 16.3431 15 18ZM15 18C12.6131 18 10.3239 17.0518 8.63604 15.364C6.94821 13.6761 6 11.3869 6 9M6 9C7.65685 9 9 7.65685 9 6C9 4.34315 7.65685 3 6 3C4.34315 3 3 4.34315 3 6C3 7.65685 4.34315 9 6 9ZM6 9V21" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Çapraz Analiz</span>
+        </button>
+      </li>
+      <li class="pc-item">
+        <button class="pc-link" data-tab="heal" onclick="App.switchTab('heal')">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14.7001 6.29998C14.5169 6.48691 14.4142 6.73823 14.4142 6.99998C14.4142 7.26173 14.5169 7.51305 14.7001 7.69998L16.3001 9.29998C16.487 9.48321 16.7383 9.58584 17.0001 9.58584C17.2619 9.58584 17.5132 9.48321 17.7001 9.29998L21.4701 5.52998C21.9729 6.64117 22.1252 7.87921 21.9066 9.07913C21.6879 10.279 21.1088 11.3838 20.2464 12.2463C19.3839 13.1087 18.2792 13.6878 17.0792 13.9064C15.8793 14.1251 14.6413 13.9728 13.5301 13.47L6.6201 20.38C6.22227 20.7778 5.68271 21.0013 5.1201 21.0013C4.55749 21.0013 4.01792 20.7778 3.6201 20.38C3.22227 19.9822 2.99878 19.4426 2.99878 18.88C2.99878 18.3174 3.22227 17.7778 3.6201 17.38L10.5301 10.47C10.0273 9.35879 9.87502 8.12075 10.0936 6.92083C10.3123 5.72092 10.8914 4.61614 11.7538 3.7537C12.6163 2.89127 13.721 2.31215 14.921 2.09352C16.1209 1.8749 17.3589 2.02714 18.4701 2.52998L14.7101 6.28998L14.7001 6.29998Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Heal</span>
+        </button>
+      </li>
+      <li class="pc-item">
+        <button class="pc-link" data-tab="diff" onclick="App.switchTab('diff')">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 15C16.3431 15 15 16.3431 15 18C15 19.6569 16.3431 21 18 21C19.6569 21 21 19.6569 21 18C21 16.3431 19.6569 15 18 15ZM18 15V8C18 7.46957 17.7893 6.96086 17.4142 6.58579C17.0391 6.21071 16.5304 6 16 6H13M6 9C7.65685 9 9 7.65685 9 6C9 4.34315 7.65685 3 6 3C4.34315 3 3 4.34315 3 6C3 7.65685 4.34315 9 6 9ZM6 9V21" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Vue Fark Analizi</span>
+        </button>
+      </li>
+      <li class="pc-item">
+        <button class="pc-link" data-tab="patch-vue" onclick="App.switchTab('patch-vue')">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58578C2.21071 4.96086 2 5.46956 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13M18.5 2.5C18.8978 2.10217 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10217 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10217 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>data-test Ekle</span>
+        </button>
+      </li>
+
+      <li><div class="sidebar-divider"></div></li>
+
+      <li class="pc-nav-label">
+        <span>Projeler</span>
+        <button onclick="App.openProjectModal()" style="float:right;background:none;border:1px solid rgba(255,102,0,0.5);border-radius:4px;color:rgba(255,102,0,0.9);font-size:0.68rem;padding:2px 8px;cursor:pointer;margin-top:-2px;">+ Ekle</button>
+      </li>
+
+      <li>
+        <div class="sidebar-projects">
+          <div id="project-list">
+            <p style="font-size:0.75rem;color:#505a67;font-style:italic;padding:4px 0;">Henüz proje yok</p>
+          </div>
+        </div>
+      </li>
+
+      <li id="active-project-panel" style="display:none;">
+        <div style="padding:8px 20px 4px;">
+          <div id="active-project-details" style="font-size:0.72rem;color:#778290;line-height:1.7;"></div>
+          <div style="display:flex;gap:12px;margin-top:6px;">
+            <button onclick="App.editProject()" style="background:none;border:none;color:#ffa21d;font-size:0.75rem;cursor:pointer;padding:0;">Düzenle</button>
+            <button onclick="App.deleteProject()" style="background:none;border:none;color:var(--pc-danger);font-size:0.75rem;cursor:pointer;padding:0;">Sil</button>
+          </div>
+        </div>
+      </li>
+
+      <li><div class="sidebar-divider"></div></li>
+
+      <li class="pc-nav-label">Son Raporlar</li>
+      <li>
+        <div style="padding:0 20px 8px;">
+          <div id="reports-list" style="font-size:0.75rem;color:#505a67;font-style:italic;">Yükleniyor...</div>
+        </div>
+      </li>
+
+    </ul>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════ HEADER -->
+<header class="pc-header">
+  <div>
+    <h5 class="page-title" id="header-page-title">Data-Test Audit</h5>
+  </div>
+  <div class="active-project-badge">
+    <span class="material-icons" style="font-size:16px;color:#adb5bd;">folder_open</span>
+    <span id="header-status" style="color:#adb5bd;">Proje seçilmedi</span>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════ MAIN CONTENT -->
+<div class="pc-container">
+  <div class="pcoded-content">
+
+    <!-- ── AUDIT TAB ── -->
+    <div id="tab-audit" class="tab-content-panel active">
+      <div class="page-header">
+        <div class="d-flex align-items-start justify-content-between">
+          <div>
+            <h5>Data-Test Audit</h5>
+            <p>Vue bileşenlerinde <code class="code">data-test</code> attribute'u eksik olan etkileşimli elementleri tespit eder.</p>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <label class="form-label-custom mb-0 me-1" style="white-space:nowrap;">Min. kapsama:</label>
+            <input type="number" id="audit-min-coverage" value="80" min="0" max="100"
+              class="form-control-custom" style="width:70px;" />
+            <button id="btn-audit" class="btn-primary-custom" onclick="App.runAudit()">
+              <span class="material-icons" style="font-size:14px;vertical-align:middle;margin-right:4px;">play_arrow</span>Çalıştır
+            </button>
+          </div>
+        </div>
+      </div>
+      <div id="audit-result"></div>
+    </div>
+
+    <!-- ── VUE ONLY TAB ── -->
+    <div id="tab-vue-only" class="tab-content-panel">
+      <div class="page-header">
+        <div class="d-flex align-items-start justify-content-between">
+          <div>
+            <h5>Vue Stabilite Analizi</h5>
+            <p>Tüm Vue elementlerinin locator kırılganlık skorunu hesaplar ve dağılımını gösterir.</p>
+          </div>
+          <button id="btn-vue-only" class="btn-primary-custom" onclick="App.runVueOnly()">
+            <span class="material-icons" style="font-size:14px;vertical-align:middle;margin-right:4px;">play_arrow</span>Çalıştır
+          </button>
+        </div>
+      </div>
+      <div id="vue-only-result"></div>
+    </div>
+
+    <!-- ── ANALYZE TAB ── -->
+    <div id="tab-analyze" class="tab-content-panel">
+      <div class="page-header">
+        <div class="d-flex align-items-start justify-content-between">
+          <div>
+            <h5>Çapraz Analiz</h5>
+            <p>Robot Framework locator'larını Vue bileşenleriyle karşılaştırır. Kırık ve riskli locator'ları bulur.</p>
+          </div>
+          <button id="btn-analyze" class="btn-primary-custom" onclick="App.runAnalyze()">
+            <span class="material-icons" style="font-size:14px;vertical-align:middle;margin-right:4px;">play_arrow</span>Çalıştır
+          </button>
+        </div>
+      </div>
+      <div id="analyze-result"></div>
+    </div>
+
+    <!-- ── HEAL TAB ── -->
+    <div id="tab-heal" class="tab-content-panel">
+      <div class="page-header">
+        <div class="d-flex align-items-start justify-content-between">
+          <div>
+            <h5>Heal</h5>
+            <p>Kırık locator'lar için otomatik düzeltme önerileri üretir ve isteğe bağlı olarak uygular.</p>
+          </div>
+          <button id="btn-heal" class="btn-primary-custom" onclick="App.runHeal()">
+            <span class="material-icons" style="font-size:14px;vertical-align:middle;margin-right:4px;">auto_fix_high</span>Önerileri Getir
+          </button>
+        </div>
+      </div>
+      <div id="heal-result"></div>
+    </div>
+
+    <!-- ── PATCH-VUE TAB ── -->
+    <div id="tab-patch-vue" class="tab-content-panel">
+      <div class="page-header">
+        <div class="d-flex align-items-start justify-content-between">
+          <div>
+            <h5>data-test Ekle</h5>
+            <p>
+              Robot locator'larına bakarak kırılgan locatorlara sahip elementlere <code class="code">id</code> ekler
+              (<strong>Robot-Driven</strong>); Robot'ta referansı olmayan elementlere <code class="code">data-test</code> ekler
+              (<strong>Audit-Driven</strong>).
+            </p>
+            <p style="font-size:0.72rem;color:#adb5bd;margin-top:2px;">
+              Önce "Önizle" ile neyin değişeceğini görün, satır satır seçin, sonra "Seçilileri Uygula" ile dosyalara yazın.
+              Git kaynağı olan Vue projelerine yazma yapılamaz.
+            </p>
+          </div>
+          <button id="btn-patch-preview" class="btn-secondary-custom" onclick="App.runPatchPreview()">
+            <span class="material-icons" style="font-size:14px;vertical-align:middle;margin-right:4px;">preview</span>Önizle
+          </button>
+        </div>
+      </div>
+      <div id="patch-vue-result"></div>
+    </div>
+
+    <!-- ── DIFF TAB ── -->
+    <div id="tab-diff" class="tab-content-panel">
+      <div class="page-header">
+        <div class="d-flex align-items-start justify-content-between">
+          <div>
+            <h5>Vue Fark Analizi</h5>
+            <p>Vue projesinin <strong>eski</strong> ve <strong>yeni</strong> halini karşılaştırır. Silinen veya adı değişen elementlerin hangi Robot locator'larını kırdığını gösterir.</p>
+            <p style="font-size:0.72rem;color:#adb5bd;margin-top:2px;">Proje ayarlarında "Eski Vue Yolu" tanımlı olmalıdır.</p>
+          </div>
+          <button id="btn-diff" class="btn-primary-custom" onclick="App.runDiff()">
+            <span class="material-icons" style="font-size:14px;vertical-align:middle;margin-right:4px;">compare</span>Analiz Et
+          </button>
+        </div>
+      </div>
+      <div id="diff-result"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ PROJECT MODAL -->
+<div id="project-modal" class="modal-overlay" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-header-custom">
+      <h5 id="modal-title">Proje Ekle</h5>
+      <button onclick="App.closeProjectModal()">&times;</button>
+    </div>
+    <div class="modal-body-custom" style="max-height:75vh;overflow-y:auto;">
+      <!-- Proje Adı -->
+      <div class="mb-3">
+        <label class="form-label-custom">Proje Adı</label>
+        <input type="text" id="modal-name" class="form-control-custom" placeholder="örn: my-shop" />
+      </div>
+
+      <!-- Vue Projesi (Güncel) -->
+      <div class="source-group">
+        <div class="source-section-label">
+          <span><span class="material-icons" style="font-size:15px;vertical-align:middle;margin-right:4px;color:var(--pc-primary);">code</span>Vue Projesi <small>(Güncel)</small></span>
+          <div class="source-toggle" id="toggle-vue">
+            <button type="button" class="toggle-opt active" onclick="App.setSource('vue','local')">
+              <span class="material-icons">folder</span>Yerel
+            </button>
+            <button type="button" class="toggle-opt" onclick="App.setSource('vue','git')">
+              <span class="material-icons">cloud_download</span>Git
+            </button>
+          </div>
+        </div>
+        <div id="vue-local-fields">
+          <input type="text" id="modal-vue-path" class="form-control-custom" placeholder="C:/projelerim/my-app/src" />
+          <div class="form-text-custom">Vue bileşenlerinin şu anki dizini</div>
+        </div>
+        <div id="vue-git-fields" style="display:none;">
+          <input type="text" id="modal-vue-git-url" class="form-control-custom mb-2" placeholder="https://github.com/org/my-vue-app" />
+          <div class="row g-2">
+            <div class="col-6">
+              <input type="text" id="modal-vue-git-branch" class="form-control-custom" placeholder="main" />
+              <div class="form-text-custom">Branch / tag</div>
+            </div>
+            <div class="col-6">
+              <input type="text" id="modal-vue-git-subdir" class="form-control-custom" placeholder="src" />
+              <div class="form-text-custom">Alt dizin (opsiyonel)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Eski Vue (Diff için) -->
+      <div class="source-group">
+        <div class="source-section-label">
+          <span><span class="material-icons" style="font-size:15px;vertical-align:middle;margin-right:4px;color:#adb5bd;">history</span>Eski Vue <small>(Fark analizi için, opsiyonel)</small></span>
+          <div class="source-toggle" id="toggle-vue-old">
+            <button type="button" class="toggle-opt active" onclick="App.setSource('vue-old','local')">
+              <span class="material-icons">folder</span>Yerel
+            </button>
+            <button type="button" class="toggle-opt" onclick="App.setSource('vue-old','git')">
+              <span class="material-icons">cloud_download</span>Git
+            </button>
+          </div>
+        </div>
+        <div id="vue-old-local-fields">
+          <input type="text" id="modal-vue-old-path" class="form-control-custom" placeholder="C:/projelerim/my-app-eski/src" />
+          <div class="form-text-custom">Önceki Vue snapshot klasörü</div>
+        </div>
+        <div id="vue-old-git-fields" style="display:none;">
+          <input type="text" id="modal-vue-old-git-url" class="form-control-custom mb-2" placeholder="https://github.com/org/my-vue-app" />
+          <div class="row g-2">
+            <div class="col-6">
+              <input type="text" id="modal-vue-old-git-ref" class="form-control-custom" placeholder="v1.2.3 veya abc123" />
+              <div class="form-text-custom">Branch, tag veya commit hash</div>
+            </div>
+            <div class="col-6">
+              <input type="text" id="modal-vue-old-git-subdir" class="form-control-custom" placeholder="src" />
+              <div class="form-text-custom">Alt dizin (opsiyonel)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Robot Projesi -->
+      <div class="source-group">
+        <div class="source-section-label">
+          <span><span class="material-icons" style="font-size:15px;vertical-align:middle;margin-right:4px;color:#3ec9d6;">smart_toy</span>Robot Projesi</span>
+          <div class="source-toggle" id="toggle-robot">
+            <button type="button" class="toggle-opt active" onclick="App.setSource('robot','local')">
+              <span class="material-icons">folder</span>Yerel
+            </button>
+            <button type="button" class="toggle-opt" onclick="App.setSource('robot','git')">
+              <span class="material-icons">cloud_download</span>Git
+            </button>
+          </div>
+        </div>
+        <div id="robot-local-fields">
+          <input type="text" id="modal-robot-path" class="form-control-custom" placeholder="C:/projelerim/robot-tests" />
+          <div class="form-text-custom">Robot Framework test dosyalarının dizini</div>
+        </div>
+        <div id="robot-git-fields" style="display:none;">
+          <input type="text" id="modal-robot-git-url" class="form-control-custom mb-2" placeholder="https://github.com/org/robot-tests" />
+          <div class="row g-2">
+            <div class="col-6">
+              <input type="text" id="modal-robot-git-branch" class="form-control-custom" placeholder="main" />
+              <div class="form-text-custom">Branch / tag</div>
+            </div>
+            <div class="col-6">
+              <input type="text" id="modal-robot-git-subdir" class="form-control-custom" placeholder="" />
+              <div class="form-text-custom">Alt dizin (opsiyonel)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Eşikler -->
+      <div class="source-group">
+        <div class="source-section-label" style="margin-bottom:10px;">
+          <span><span class="material-icons" style="font-size:15px;vertical-align:middle;margin-right:4px;color:#ffa21d;">tune</span>Stabilite Eşikleri</span>
+          <button type="button" onclick="App.toggleScoreInfo()" style="background:none;border:1px solid #dee2e6;border-radius:4px;padding:2px 8px;font-size:0.72rem;color:#6c757d;cursor:pointer;display:flex;align-items:center;gap:3px;">
+            <span class="material-icons" style="font-size:12px;">info</span> Skor Tablosu
+          </button>
+        </div>
+
+        <!-- Skor tablosu (gizli, toggle ile açılır) -->
+        <div id="score-info-table" style="display:none;background:#f8f9fa;border-radius:6px;padding:10px;margin-bottom:12px;font-size:0.75rem;">
+          <p style="margin:0 0 4px;color:#495057;font-weight:600;">Robot Framework locator türlerine göre stabilite skoru (0–100):</p>
+          <p style="margin:0 0 8px;color:#adb5bd;font-size:0.7rem;">RF locator arama sırası: ID → ClassName → Name → TagName → LinkText → CssSelector → XPath → DOM</p>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr style="border-bottom:1px solid #dee2e6;">
+              <th style="text-align:left;padding:3px 6px;color:#6c757d;font-weight:600;">Skor</th>
+              <th style="text-align:left;padding:3px 6px;color:#6c757d;font-weight:600;">Locator Türü</th>
+              <th style="text-align:left;padding:3px 6px;color:#6c757d;font-weight:600;">Açıklama</th>
+            </tr>
+            <tr style="background:#e8f5e9;"><td style="padding:3px 6px;font-weight:700;color:#17C666;">95</td><td style="padding:3px 6px;"><code style="background:#c8e6c9;padding:1px 4px;border-radius:3px;">data-test</code> / <code style="background:#c8e6c9;padding:1px 4px;border-radius:3px;">data-testid</code></td><td style="padding:3px 6px;color:#2e7d32;font-weight:600;">★ Bu projede öncelikli — en stabil</td></tr>
+            <tr style="background:#fff;"><td style="padding:3px 6px;font-weight:700;color:#17C666;">85</td><td style="padding:3px 6px;"><code style="background:#e9ecef;padding:1px 4px;border-radius:3px;">ID</code></td><td style="padding:3px 6px;color:#6c757d;">RF'de ilk aranır — statikse stabil</td></tr>
+            <tr><td style="padding:3px 6px;font-weight:700;color:#ffa21d;">70</td><td style="padding:3px 6px;"><code style="background:#e9ecef;padding:1px 4px;border-radius:3px;">Name</code></td><td style="padding:3px 6px;color:#6c757d;">Form elementleri için iyi</td></tr>
+            <tr style="background:#fff;"><td style="padding:3px 6px;font-weight:700;color:#ffa21d;">65</td><td style="padding:3px 6px;"><code style="background:#e9ecef;padding:1px 4px;border-radius:3px;">LinkText</code></td><td style="padding:3px 6px;color:#6c757d;">Metin değişirse bozulur</td></tr>
+            <tr><td style="padding:3px 6px;font-weight:700;color:#ffa21d;">50</td><td style="padding:3px 6px;"><code style="background:#e9ecef;padding:1px 4px;border-radius:3px;">CssSelector</code></td><td style="padding:3px 6px;color:#6c757d;">Orta stabil — UI lib sınıflarından kaçın</td></tr>
+            <tr style="background:#fff;"><td style="padding:3px 6px;font-weight:700;color:#fd7e14;">35</td><td style="padding:3px 6px;"><code style="background:#e9ecef;padding:1px 4px;border-radius:3px;">ClassName</code></td><td style="padding:3px 6px;color:#6c757d;">Riskli — UI değişince bozulur</td></tr>
+            <tr><td style="padding:3px 6px;font-weight:700;color:#EA4D4D;">25</td><td style="padding:3px 6px;"><code style="background:#e9ecef;padding:1px 4px;border-radius:3px;">TagName</code></td><td style="padding:3px 6px;color:#6c757d;">Çok riskli — semantik anlam yok</td></tr>
+            <tr style="background:#fff;"><td style="padding:3px 6px;font-weight:700;color:#EA4D4D;">10</td><td style="padding:3px 6px;"><code style="background:#e9ecef;padding:1px 4px;border-radius:3px;">XPath</code> (index) / <code style="background:#e9ecef;padding:1px 4px;border-radius:3px;">DOM</code></td><td style="padding:3px 6px;color:#6c757d;">Kritik — DOM sırası değişince kırılır</td></tr>
+          </table>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-6">
+            <label class="form-label-custom">
+              Stabilite Eşiği
+              <span style="background:#fff3cd;color:#856404;font-size:0.68rem;font-weight:600;padding:1px 6px;border-radius:10px;margin-left:4px;">UYARI</span>
+            </label>
+            <input type="number" id="modal-stability" class="form-control-custom" value="50" min="0" max="100" />
+            <div class="form-text-custom">Bu skorun <strong>altındaki</strong> locator'lar <span style="color:#ffa21d;font-weight:600;">Riskli</span> olarak işaretlenir. Önerilen: <strong>50</strong> (CssSelector ve üstü)</div>
+          </div>
+          <div class="col-6">
+            <label class="form-label-custom">
+              Kritik Eşik
+              <span style="background:#fde8e8;color:#EA4D4D;font-size:0.68rem;font-weight:600;padding:1px 6px;border-radius:10px;margin-left:4px;">KRİTİK</span>
+            </label>
+            <input type="number" id="modal-critical" class="form-control-custom" value="30" min="0" max="100" />
+            <div class="form-text-custom">Bu skorun <strong>altındaki</strong> locator'lar <span style="color:#EA4D4D;font-weight:600;">Kritik</span> olarak işaretlenir. Önerilen: <strong>30</strong> (ClassName/TagName/XPath)</div>
+          </div>
+        </div>
+        <div style="margin-top:8px;padding:8px;background:#f0f2f8;border-radius:6px;font-size:0.72rem;color:#6c757d;">
+          <span class="material-icons" style="font-size:12px;vertical-align:middle;margin-right:2px;">lightbulb</span>
+          Kritik eşik &lt; Stabilite eşiği olmalıdır. Örn: Kritik=30, Stabilite=50 → ClassName/TagName/XPath <span style="color:#EA4D4D;font-weight:600;">Kritik</span>, CssSelector <span style="color:#ffa21d;font-weight:600;">Riskli</span>, ID/Name/data-test güvenli.
+        </div>
+      </div>
+      <!-- Slack Entegrasyonu -->
+      <div class="source-group" style="margin-top:16px;">
+        <div class="source-section-label" style="margin-bottom:10px;">
+          <span><span class="material-icons" style="font-size:15px;vertical-align:middle;margin-right:4px;color:#4A154B;">send</span>Slack Entegrasyonu</span>
+          <span style="font-size:0.7rem;color:#adb5bd;">Opsiyonel</span>
+        </div>
+        <input type="text" id="modal-slack-webhook" class="form-control-custom"
+          placeholder="https://hooks.slack.com/services/..." />
+        <div class="form-text-custom">Analiz sonuçlarını göndermek için Incoming Webhook URL</div>
+      </div>
+
+      <div id="modal-error" class="mt-3" style="display:none;"></div>
+    </div>
+    <div class="modal-footer-custom">
+      <button onclick="App.closeProjectModal()" class="btn-secondary-custom">İptal</button>
+      <button id="modal-save-btn" onclick="App.saveProject()" class="btn-primary-custom">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ CONFIRM MODAL -->
+<div id="confirm-modal" class="modal-overlay" style="display:none;">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-header-custom" style="background:#495057;">
+      <h5 id="confirm-title">Onay</h5>
+      <button onclick="App.closeConfirm(false)">&times;</button>
+    </div>
+    <div class="modal-body-custom">
+      <p id="confirm-message" style="margin:0;color:#495057;font-size:0.875rem;"></p>
+    </div>
+    <div class="modal-footer-custom">
+      <button onclick="App.closeConfirm(false)" class="btn-secondary-custom">İptal</button>
+      <button id="confirm-ok" onclick="App.closeConfirm(true)" class="btn-danger-custom">Evet, Devam Et</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ SCRIPTS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Feather icons replace
+  document.addEventListener('DOMContentLoaded', () => {
+    if (typeof feather !== 'undefined') feather.replace();
+  });
+
+  const TAB_TITLES = {
+    'audit': 'Data-Test Audit',
+    'vue-only': 'Vue Stabilite Analizi',
+    'analyze': 'Çapraz Analiz',
+    'heal': 'Heal',
+    'diff': 'Vue Fark Analizi',
+    'patch-vue': 'data-test Ekle',
+  };
+
+  const App = {
+    activeProject: null,
+    editingProject: null,
+    confirmResolve: null,
+
+    // ── Init ────────────────────────────────────────────────
+    async init() {
+      await this.loadProjects();
+      await this.loadReports();
+    },
+
+    // ── Projects ────────────────────────────────────────────
+    async loadProjects() {
+      const r = await fetch('/api/projects').then(r => r.json());
+      this.renderProjectList(r.projects, r.active);
+      if (r.active && r.projects[r.active]) {
+        this.selectProject(r.active, r.projects[r.active]);
+      }
+    },
+
+    renderProjectList(projects, active) {
+      const el = document.getElementById('project-list');
+      const keys = Object.keys(projects);
+      if (!keys.length) {
+        el.innerHTML = '<p style="font-size:0.75rem;color:#505a67;font-style:italic;padding:4px 0;">Henüz proje yok</p>';
+        return;
+      }
+      el.innerHTML = keys.map(name => {
+        const projJson = JSON.stringify(projects[name]).replace(/"/g, '&quot;');
+        return `<div class="sidebar-proj-item ${name === active ? 'active' : ''}" data-name="${name}" style="justify-content:space-between;"
+               onclick="App.selectProject('${name}', ${projJson})">
+          <span style="display:flex;align-items:center;gap:6px;overflow:hidden;">
+            <span class="material-icons" style="font-size:14px;flex-shrink:0;">folder</span>
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</span>
+          </span>
+          <button onclick="event.stopPropagation();App.deleteProjectByName('${name}')"
+            title="Sil"
+            style="background:none;border:none;padding:0 2px;cursor:pointer;color:rgba(234,77,77,0.6);line-height:1;flex-shrink:0;display:flex;align-items:center;"
+            onmouseover="this.style.color='#EA4D4D'" onmouseout="this.style.color='rgba(234,77,77,0.6)'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M3 6H5M5 6H21M5 6V20C5 20.5304 5.21071 21.0391 5.58579 21.4142C5.96086 21.7893 6.46957 22 7 22H17C17.5304 22 18.0391 21.7893 18.4142 21.4142C18.7893 21.0391 19 20.5304 19 20V6H5ZM8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M10 11V17M14 11V17"/></svg>
+          </button>
+        </div>`;
+      }).join('');
+    },
+
+    selectProject(name, project) {
+      this.activeProject = name;
+      const badge = document.getElementById('header-status');
+      badge.innerHTML = `<span class="proj-name">${name}</span>`;
+
+      document.querySelectorAll('.sidebar-proj-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.name === name);
+      });
+
+      const panel = document.getElementById('active-project-panel');
+      panel.style.display = '';
+      const srcLabel = (src, local, gitUrl, gitRef) => {
+        if (src === 'git') {
+          const short = (gitUrl || '').replace(/^https?:\/\/[^/]+\//, '');
+          return `<span style="color:#7267EF;font-size:0.7rem;">[git]</span> <span style="color:#adb5bd;">${short}${gitRef ? ' @ '+gitRef : ''}</span>`;
+        }
+        return `<span style="color:#adb5bd;word-break:break-all;">${local || '—'}</span>`;
+      };
+      const hasOldVue = (project.vue_old_source === 'git' && project.vue_old_git_url) || project.vue_old_path;
+      document.getElementById('active-project-details').innerHTML = `
+        <div><span style="color:#505a67;">Vue:</span> ${srcLabel(project.vue_source, project.vue_path, project.vue_git_url, project.vue_git_branch)}</div>
+        ${hasOldVue ? `<div><span style="color:#505a67;">Eski Vue:</span> ${srcLabel(project.vue_old_source, project.vue_old_path, project.vue_old_git_url, project.vue_old_git_ref)}</div>` : ''}
+        <div><span style="color:#505a67;">Robot:</span> ${srcLabel(project.robot_source, project.robot_path, project.robot_git_url, project.robot_git_branch)}</div>
+        <div><span style="color:#505a67;">Eşik:</span> <span style="color:#adb5bd;">${project.stability_threshold} / kritik ${project.critical_threshold}</span></div>
+      `;
+
+      ['audit-result','vue-only-result','analyze-result','heal-result','diff-result','patch-vue-result'].forEach(id => {
+        document.getElementById(id).innerHTML = '';
+      });
+    },
+
+    // ── Source Toggle ──────────────────────────────────────────
+    setSource(group, source) {
+      this._applySource(group, source);
+    },
+
+    _applySource(group, source) {
+      const toggleEl = document.getElementById(`toggle-${group}`);
+      if (!toggleEl) return;
+      toggleEl.querySelectorAll('.toggle-opt').forEach((btn, i) => {
+        btn.classList.toggle('active', (source === 'local' && i === 0) || (source === 'git' && i === 1));
+      });
+      const localDiv = document.getElementById(`${group}-local-fields`);
+      const gitDiv   = document.getElementById(`${group}-git-fields`);
+      if (localDiv) localDiv.style.display = source === 'local' ? '' : 'none';
+      if (gitDiv)   gitDiv.style.display   = source === 'git'   ? '' : 'none';
+      this[`_src_${group.replace('-','_')}`] = source;
+    },
+
+    openProjectModal(editName = null) {
+      this.editingProject = editName;
+      document.getElementById('modal-title').textContent = editName ? 'Proje Düzenle' : 'Proje Ekle';
+      document.getElementById('modal-error').style.display = 'none';
+
+      if (editName) {
+        fetch('/api/projects').then(r => r.json()).then(data => {
+          const p = data.projects[editName] || {};
+          document.getElementById('modal-name').value = editName;
+          document.getElementById('modal-name').disabled = true;
+
+          // Vue (güncel)
+          this._applySource('vue', p.vue_source || 'local');
+          document.getElementById('modal-vue-path').value          = p.vue_path || '';
+          document.getElementById('modal-vue-git-url').value       = p.vue_git_url || '';
+          document.getElementById('modal-vue-git-branch').value    = p.vue_git_branch || 'main';
+          document.getElementById('modal-vue-git-subdir').value    = p.vue_git_subdir || '';
+
+          // Vue (eski)
+          this._applySource('vue-old', p.vue_old_source || 'local');
+          document.getElementById('modal-vue-old-path').value      = p.vue_old_path || '';
+          document.getElementById('modal-vue-old-git-url').value   = p.vue_old_git_url || '';
+          document.getElementById('modal-vue-old-git-ref').value   = p.vue_old_git_ref || '';
+          document.getElementById('modal-vue-old-git-subdir').value= p.vue_old_git_subdir || '';
+
+          // Robot
+          this._applySource('robot', p.robot_source || 'local');
+          document.getElementById('modal-robot-path').value        = p.robot_path || '';
+          document.getElementById('modal-robot-git-url').value     = p.robot_git_url || '';
+          document.getElementById('modal-robot-git-branch').value  = p.robot_git_branch || 'main';
+          document.getElementById('modal-robot-git-subdir').value  = p.robot_git_subdir || '';
+
+          document.getElementById('modal-stability').value    = p.stability_threshold || 50;
+          document.getElementById('modal-critical').value      = p.critical_threshold  || 30;
+          document.getElementById('modal-slack-webhook').value = p.slack_webhook || '';
+        });
+      } else {
+        document.getElementById('modal-name').value = '';
+        document.getElementById('modal-name').disabled = false;
+        ['vue', 'vue-old', 'robot'].forEach(g => this._applySource(g, 'local'));
+        ['modal-vue-path','modal-vue-git-url','modal-vue-git-branch','modal-vue-git-subdir',
+         'modal-vue-old-path','modal-vue-old-git-url','modal-vue-old-git-ref','modal-vue-old-git-subdir',
+         'modal-robot-path','modal-robot-git-url','modal-robot-git-branch','modal-robot-git-subdir',
+        ].forEach(id => { document.getElementById(id).value = ''; });
+        document.getElementById('modal-vue-git-branch').value   = 'main';
+        document.getElementById('modal-robot-git-branch').value = 'main';
+        document.getElementById('modal-stability').value = 50;
+        document.getElementById('modal-critical').value  = 30;
+      }
+      document.getElementById('project-modal').style.display = 'flex';
+    },
+
+    closeProjectModal() {
+      document.getElementById('project-modal').style.display = 'none';
+      this.editingProject = null;
+      // Skor tablosunu kapat
+      const t = document.getElementById('score-info-table');
+      if (t) t.style.display = 'none';
+    },
+
+    toggleScoreInfo() {
+      const t = document.getElementById('score-info-table');
+      t.style.display = t.style.display === 'none' ? '' : 'none';
+    },
+
+    editProject() {
+      if (this.activeProject) this.openProjectModal(this.activeProject);
+    },
+
+    async deleteProject() {
+      if (!this.activeProject) return;
+      await this.deleteProjectByName(this.activeProject);
+    },
+
+    async deleteProjectByName(name) {
+      const ok = await this.confirm('Projeyi Sil', `"${name}" projesi silinecek. Emin misiniz?`);
+      if (!ok) return;
+      await fetch(`/api/projects/${name}`, { method: 'DELETE' });
+      if (this.activeProject === name) {
+        this.activeProject = null;
+        document.getElementById('active-project-panel').style.display = 'none';
+        document.getElementById('header-status').textContent = 'Proje seçilmedi';
+        document.getElementById('header-status').style.cssText = 'color:#adb5bd;';
+      }
+      await this.loadProjects();
+    },
+
+    async saveProject() {
+      const name    = document.getElementById('modal-name').value.trim();
+      const errEl   = document.getElementById('modal-error');
+      const showErr = (msg) => {
+        errEl.innerHTML = `<div class="alert alert-danger py-2 mb-0" style="font-size:0.8rem;">${msg}</div>`;
+        errEl.style.display = '';
+      };
+      if (!name) return showErr('Proje adı gerekli.');
+
+      const vue_source  = this._src_vue     || 'local';
+      const old_source  = this._src_vue_old || 'local';
+      const robot_source= this._src_robot   || 'local';
+
+      // Zorunlu alan kontrolü
+      if (vue_source === 'local' && !document.getElementById('modal-vue-path').value.trim())
+        return showErr('Vue proje yolu gerekli.');
+      if (vue_source === 'git' && !document.getElementById('modal-vue-git-url').value.trim())
+        return showErr('Vue Git URL gerekli.');
+      if (robot_source === 'local' && !document.getElementById('modal-robot-path').value.trim())
+        return showErr('Robot proje yolu gerekli.');
+      if (robot_source === 'git' && !document.getElementById('modal-robot-git-url').value.trim())
+        return showErr('Robot Git URL gerekli.');
+
+      const body = {
+        name,
+        vue_source,
+        vue_path:           document.getElementById('modal-vue-path').value.trim(),
+        vue_git_url:        document.getElementById('modal-vue-git-url').value.trim(),
+        vue_git_branch:     document.getElementById('modal-vue-git-branch').value.trim() || 'main',
+        vue_git_subdir:     document.getElementById('modal-vue-git-subdir').value.trim(),
+        vue_old_source:     old_source,
+        vue_old_path:       document.getElementById('modal-vue-old-path').value.trim(),
+        vue_old_git_url:    document.getElementById('modal-vue-old-git-url').value.trim(),
+        vue_old_git_ref:    document.getElementById('modal-vue-old-git-ref').value.trim(),
+        vue_old_git_subdir: document.getElementById('modal-vue-old-git-subdir').value.trim(),
+        robot_source,
+        robot_path:         document.getElementById('modal-robot-path').value.trim(),
+        robot_git_url:      document.getElementById('modal-robot-git-url').value.trim(),
+        robot_git_branch:   document.getElementById('modal-robot-git-branch').value.trim() || 'main',
+        robot_git_subdir:   document.getElementById('modal-robot-git-subdir').value.trim(),
+        stability_threshold: parseInt(document.getElementById('modal-stability').value),
+        critical_threshold:  parseInt(document.getElementById('modal-critical').value),
+        ignore_locators: [],
+        output_dir: 'reports',
+        slack_webhook: document.getElementById('modal-slack-webhook').value.trim(),
+      };
+
+      const url    = this.editingProject ? `/api/projects/${this.editingProject}` : '/api/projects';
+      const method = this.editingProject ? 'PUT' : 'POST';
+      const r    = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+      const data = await r.json();
+      if (!r.ok) return showErr(data.detail || 'Bir hata oluştu.');
+
+      this.closeProjectModal();
+      await this.loadProjects();
+      this.selectProject(name, body);
+    },
+
+    // ── Tabs ──────────────────────────────────────────────────
+    switchTab(tab) {
+      document.querySelectorAll('.pc-link[data-tab]').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content-panel').forEach(c => c.classList.remove('active'));
+      const btn = document.querySelector(`.pc-link[data-tab="${tab}"]`);
+      if (btn) btn.classList.add('active');
+      const panel = document.getElementById(`tab-${tab}`);
+      if (panel) panel.classList.add('active');
+      document.getElementById('header-page-title').textContent = TAB_TITLES[tab] || '';
+    },
+
+    // ── Guard ─────────────────────────────────────────────────
+    requireProject() {
+      if (!this.activeProject) {
+        this.showToast('Lütfen önce sol panelden bir proje seçin veya ekleyin.', 'warning');
+        return false;
+      }
+      return true;
+    },
+
+    showToast(msg, type = 'info') {
+      // Aynı anda birden fazla toast gösterme
+      document.querySelectorAll('.ls-toast').forEach(t => t.remove());
+      const icons = { info: 'ℹ', warning: '⚠', danger: '✕', success: '✓' };
+      const colors = {
+        info:    { border: '#3ec9d6', icon: '#3ec9d6' },
+        warning: { border: '#ffa21d', icon: '#ffa21d' },
+        danger:  { border: '#EA4D4D', icon: '#EA4D4D' },
+        success: { border: '#17C666', icon: '#17C666' },
+      };
+      const c = colors[type] || colors.info;
+      const wrap = document.createElement('div');
+      wrap.className = 'ls-toast';
+      wrap.style.cssText = 'position:fixed;bottom:30px;left:0;width:100%;display:flex;justify-content:center;z-index:9999;transition:opacity 0.4s;opacity:0;pointer-events:none;';
+      wrap.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:12px 20px;background:#fff;border:1.5px solid ${c.border};border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.12);max-width:480px;font-size:0.875rem;font-weight:500;color:#293240;pointer-events:auto;"><span style="color:${c.icon};font-size:1.1rem;font-weight:700;">${icons[type]||'ℹ'}</span><span>${msg}</span></div>`;
+      document.body.appendChild(wrap);
+      requestAnimationFrame(() => { wrap.style.opacity = '1'; });
+      setTimeout(() => {
+        wrap.style.opacity = '0';
+        setTimeout(() => wrap.remove(), 400);
+      }, 3500);
+    },
+
+    setLoading(btnId, loading) {
+      const btn = document.getElementById(btnId);
+      if (!btn) return;
+      const labels = { 'btn-audit': 'Çalıştır', 'btn-vue-only': 'Çalıştır', 'btn-analyze': 'Çalıştır', 'btn-heal': 'Önerileri Getir', 'btn-diff': 'Analiz Et', 'btn-patch-preview': 'Önizle' };
+      const icons = { 'btn-audit': 'play_arrow', 'btn-vue-only': 'play_arrow', 'btn-analyze': 'play_arrow', 'btn-heal': 'auto_fix_high', 'btn-diff': 'compare', 'btn-patch-preview': 'preview' };
+      if (loading) {
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner"></span> Çalışıyor...`;
+      } else {
+        btn.disabled = false;
+        const lbl = labels[btnId] || 'Çalıştır';
+        const ic = icons[btnId] || 'play_arrow';
+        btn.innerHTML = `<span class="material-icons" style="font-size:14px;vertical-align:middle;margin-right:4px;">${ic}</span>${lbl}`;
+      }
+    },
+
+    setLoadingCustom(btnId, loading, label) {
+      const btn = document.getElementById(btnId);
+      if (!btn) return;
+      btn.disabled = loading;
+      btn.innerHTML = loading ? `<span class="spinner"></span> ${label}` : label;
+    },
+
+    // ── Audit ─────────────────────────────────────────────────
+    async runAudit() {
+      if (!this.requireProject()) return;
+      const minCov = document.getElementById('audit-min-coverage').value || 80;
+      this.setLoading('btn-audit', true);
+      const r = await fetch(`/api/projects/${this.activeProject}/audit?min_coverage=${minCov}`, { method: 'POST' });
+      const data = await r.json();
+      this.setLoading('btn-audit', false);
+      this.renderAuditResult(data);
+    },
+
+    renderAuditResult(res) {
+      const el = document.getElementById('audit-result');
+      if (!res.ok) { el.innerHTML = this.errorHtml(res.errors || [res.error]); return; }
+      const d = res.data;
+      const s = d.summary;
+      const covPct = Math.min(s.coverage_percent, 100);
+      const covColor = s.coverage_percent >= 80 ? 'score-high' : s.coverage_percent >= 50 ? 'score-medium' : 'score-critical';
+      const covBg = s.coverage_percent >= 80 ? 'bg-success' : s.coverage_percent >= 50 ? 'bg-warning' : 'bg-danger';
+
+      let issuesHtml = '';
+      if (d.by_file && Object.keys(d.by_file).length) {
+        for (const [fname, issues] of Object.entries(d.by_file)) {
+          issuesHtml += `<div class="mb-4">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="code">${fname}</span>
+              <span style="font-size:0.75rem;color:#adb5bd;">${issues.length} sorun</span>
+            </div>
+            <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead><tr>
+                <th style="width:90px">Seviye</th>
+                <th style="width:55px">Satır</th>
+                <th style="width:70px">Tag</th>
+                <th>Öneri</th>
+                <th>data-test Adı</th>
+              </tr></thead>
+              <tbody>
+              ${issues.map(i => `<tr>
+                <td><span class="badge-${i.severity === 'critical' ? 'critical' : i.severity === 'warning' ? 'warning' : 'info'}">${i.severity.toUpperCase()}</span></td>
+                <td style="color:#adb5bd;">${i.line}</td>
+                <td><span class="code">&lt;${i.tag}&gt;</span></td>
+                <td style="color:#495057;font-size:0.8rem;">${i.suggestion}</td>
+                <td><span class="code" style="color:var(--pc-primary);">${i.suggested_data_test || '—'}</span></td>
+              </tr>`).join('')}
+              </tbody>
+            </table>
+            </div>
+          </div>`;
+        }
+      } else {
+        issuesHtml = `<div class="empty-state"><span class="material-icons" style="color:var(--pc-success);">check_circle</span><p style="color:var(--pc-success);font-weight:600;">Tüm etkileşimli elementlerde data-test mevcut!</p></div>`;
+      }
+
+      el.innerHTML = `
+        <div class="row g-3 mb-4">
+          ${this.statCardHtml('Taranan Dosya', s.files_scanned, 'description', '')}
+          ${this.statCardHtml('İnteraktif Element', s.total_interactive, 'touch_app', '')}
+          ${this.statCardHtml('data-test Mevcut', s.covered, 'check_circle', 'score-high')}
+          ${this.statCardHtml('data-test Eksik', s.missing, 'cancel', 'score-critical')}
+        </div>
+        <div class="card mb-4">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Kapsama Oranı</span>
+            <span class="fw-bold fs-5 ${covColor}">${s.coverage_percent}%</span>
+          </div>
+          <div class="card-body">
+            <div class="prog-bar-wrap mb-2">
+              <div class="prog-bar ${covBg}" style="width:${covPct}%;"></div>
+            </div>
+            <p style="font-size:0.75rem;color:#adb5bd;margin:0;">${d.coverage_ok ? '✓ Hedef karşılandı' : '⚠ Hedefin altında'}</p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">Tespit Edilen Sorunlar (${s.missing})</div>
+          <div class="card-body">${issuesHtml}</div>
+        </div>
+        ${this.durationHtml(res.duration)}
+        ${this.slackBtn('audit', d, res.duration)}`;
+    },
+
+    // ── Vue Only ──────────────────────────────────────────────
+    async runVueOnly() {
+      if (!this.requireProject()) return;
+      this.setLoading('btn-vue-only', true);
+      const r = await fetch(`/api/projects/${this.activeProject}/vue-only`, { method: 'POST' });
+      const data = await r.json();
+      this.setLoading('btn-vue-only', false);
+      this.renderVueOnlyResult(data);
+    },
+
+    renderVueOnlyResult(res) {
+      const el = document.getElementById('vue-only-result');
+      if (!res.ok) { el.innerHTML = this.errorHtml(res.errors || [res.error]); return; }
+      const d = res.data;
+      const s = d.summary;
+      const dist = d.distribution;
+      const total = dist.total || 1;
+      const worst10 = [...d.elements].sort((a,b) => a.stability_score - b.stability_score).slice(0,10);
+
+      el.innerHTML = `
+        <div class="row g-3 mb-4">
+          ${this.statCardHtml('Taranan Dosya', s.files_scanned, 'folder_open', '')}
+          ${this.statCardHtml('İnteraktif Element', s.total_interactive, 'touch_app', '')}
+          ${this.statCardHtml('Ort. Stabilite', s.avg_stability_score, 'trending_up', this.scoreClass(s.avg_stability_score))}
+          ${this.statCardHtml('Toplam Element', s.total_elements, 'widgets', '')}
+        </div>
+        <div class="row g-4 mb-4">
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div class="card-header">Stabilite Dağılımı</div>
+              <div class="card-body">
+                ${this.distBarHtml('YÜKSEK (80+)', dist.high, total, '#17C666', 'score-high')}
+                ${this.distBarHtml('ORTA (50-79)', dist.medium, total, '#ffa21d', 'score-medium')}
+                ${this.distBarHtml('DÜŞÜK (30-49)', dist.low, total, '#fd7e14', 'score-low')}
+                ${this.distBarHtml('KRİTİK (<30)', dist.critical, total, '#EA4D4D', 'score-critical')}
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div class="card-header">Özet</div>
+              <div class="card-body">
+                <div class="d-flex justify-content-between mb-2" style="font-size:0.875rem;">
+                  <span style="color:#6c757d;">data-test kullanan</span>
+                  <span class="fw-semibold score-high">${d.elements.filter(e=>e.data_test||e.data_testid).length}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2" style="font-size:0.875rem;">
+                  <span style="color:#6c757d;">ID kullanan</span>
+                  <span class="fw-semibold" style="color:var(--pc-info);">${d.elements.filter(e=>e.id).length}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2" style="font-size:0.875rem;">
+                  <span style="color:#6c757d;">Sadece class</span>
+                  <span class="fw-semibold score-medium">${d.elements.filter(e=>!e.data_test&&!e.data_testid&&!e.id&&e.classes?.length).length}</span>
+                </div>
+                <div class="d-flex justify-content-between" style="font-size:0.875rem;">
+                  <span style="color:#6c757d;">Selector yok</span>
+                  <span class="fw-semibold score-critical">${d.elements.filter(e=>!e.best_selector).length}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">En Kırılgan 10 Element</div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead><tr>
+                <th style="width:65px">Skor</th>
+                <th style="width:100px">Seviye</th>
+                <th>Dosya:Satır</th>
+                <th style="width:70px">Tag</th>
+                <th>Mevcut Selector</th>
+              </tr></thead>
+              <tbody>
+                ${worst10.map(e => `<tr>
+                  <td><span class="fw-bold ${this.scoreClass(e.stability_score)}">${e.stability_score}</span></td>
+                  <td><span class="${this.scoreBadge(e.stability_score)}">${e.stability_label}</span></td>
+                  <td style="font-size:0.75rem;color:#6c757d;">${this.shortPath(e.file)}:${e.line}</td>
+                  <td><span class="code">&lt;${e.tag}&gt;</span></td>
+                  <td style="font-size:0.75rem;"><span class="code">${e.best_selector || '(yok)'}</span></td>
+                </tr>`).join('')}
+              </tbody>
+            </table>
+            </div>
+          </div>
+        </div>
+        ${this.durationHtml(res.duration)}`;
+    },
+
+    // ── Analyze ───────────────────────────────────────────────
+    async runAnalyze() {
+      if (!this.requireProject()) return;
+      this.setLoading('btn-analyze', true);
+      const r = await fetch(`/api/projects/${this.activeProject}/analyze`, { method: 'POST' });
+      const data = await r.json();
+      this.setLoading('btn-analyze', false);
+      this.renderAnalyzeResult(data);
+    },
+
+    renderAnalyzeResult(res) {
+      const el = document.getElementById('analyze-result');
+      if (!res.ok) { el.innerHTML = this.errorHtml(res.errors || [res.error]); return; }
+      const d = res.data;
+      const s = d.summary;
+      const si = d.scan_info;
+
+      const brokenRows = d.broken_locators.map(l => `<tr>
+        <td style="font-size:0.75rem;color:#6c757d;">${this.shortPath(l.file)}:${l.line}</td>
+        <td><span class="code" style="color:var(--pc-danger);font-size:0.75rem;">${l.value}</span></td>
+        <td style="font-size:0.75rem;">${l.type}</td>
+        <td style="font-size:0.75rem;color:var(--pc-danger);">${l.break_reason || '—'}</td>
+      </tr>`).join('');
+
+      const riskyRows = d.risky_locators.map(l => `<tr>
+        <td style="font-size:0.75rem;color:#6c757d;">${this.shortPath(l.file)}:${l.line}</td>
+        <td><span class="code" style="color:var(--pc-warning);font-size:0.75rem;">${l.value}</span></td>
+        <td style="font-size:0.75rem;">${l.type}</td>
+        <td><span class="fw-semibold ${this.scoreClass(l.stability_score)}">${l.stability_score}</span></td>
+        <td style="font-size:0.75rem;">${l.stability_label}</td>
+      </tr>`).join('');
+
+      el.innerHTML = `
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <div class="card text-center" style="border-color:#f5c6cb;background:#fff5f5;">
+              <div class="card-body">
+                <div class="stat-val score-critical">${s.broken_locators || 0}</div>
+                <div class="stat-label">Kırık Locator</div>
+                <div style="font-size:0.72rem;color:#adb5bd;margin-top:4px;">Vue'da karşılık yok</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card text-center" style="border-color:#ffc107;background:#fffdf0;">
+              <div class="card-body">
+                <div class="stat-val score-medium">${s.risky_locators || 0}</div>
+                <div class="stat-label">Riskli Locator</div>
+                <div style="font-size:0.72rem;color:#adb5bd;margin-top:4px;">Düşük stabilite skoru</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card text-center" style="border-color:#c3e6cb;background:#f5fff8;">
+              <div class="card-body">
+                <div class="stat-val score-high">${s.healthy_locators || 0}</div>
+                <div class="stat-label">Sağlıklı Locator</div>
+                <div style="font-size:0.72rem;color:#adb5bd;margin-top:4px;">Stabil ve eşleşiyor</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="row g-3 mb-4">
+          <div class="col-md-8">
+            <div class="card">
+              <div class="card-body d-flex gap-4 flex-wrap" style="font-size:0.8rem;">
+                <div><div class="fw-semibold">${si.vue_files}</div><div style="color:#6c757d;">Vue dosyası</div></div>
+                <div><div class="fw-semibold">${si.vue_elements}</div><div style="color:#6c757d;">Vue elementi</div></div>
+                <div><div class="fw-semibold">${si.robot_files}</div><div style="color:#6c757d;">Robot dosyası</div></div>
+                <div><div class="fw-semibold">${si.robot_locators}</div><div style="color:#6c757d;">Robot locator</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card">
+              <div class="card-body d-flex gap-4" style="font-size:0.8rem;">
+                <div><div class="fw-semibold score-critical">${s.break_rate || 0}%</div><div style="color:#6c757d;">Kırılma oranı</div></div>
+                <div><div class="fw-semibold score-medium">${s.risk_rate || 0}%</div><div style="color:#6c757d;">Risk oranı</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        ${d.broken_locators.length ? `
+        <div class="card mb-4">
+          <div class="card-header" style="color:var(--pc-danger);">
+            <span class="material-icons" style="font-size:16px;vertical-align:middle;margin-right:6px;">error</span>
+            Kırık Locator'lar (${d.broken_locators.length})
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead><tr><th>Dosya:Satır</th><th>Locator</th><th>Tip</th><th>Neden Kırık</th></tr></thead>
+              <tbody>${brokenRows}</tbody>
+            </table>
+            </div>
+          </div>
+        </div>` : ''}
+        ${d.risky_locators.length ? `
+        <div class="card mb-4">
+          <div class="card-header" style="color:#856404;">
+            <span class="material-icons" style="font-size:16px;vertical-align:middle;margin-right:6px;">warning</span>
+            Riskli Locator'lar (${d.risky_locators.length})
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead><tr><th>Dosya:Satır</th><th>Locator</th><th>Tip</th><th>Skor</th><th>Seviye</th></tr></thead>
+              <tbody>${riskyRows}</tbody>
+            </table>
+            </div>
+          </div>
+        </div>` : ''}
+        ${this.durationHtml(res.duration)}
+        ${this.slackBtn('analyze', d, res.duration)}`;
+    },
+
+    // ── Heal ──────────────────────────────────────────────────
+    async runHeal() {
+      if (!this.requireProject()) return;
+      this.setLoading('btn-heal', true);
+      const r = await fetch(`/api/projects/${this.activeProject}/heal`, { method: 'POST' });
+      const data = await r.json();
+      this.setLoading('btn-heal', false);
+      this.renderHealResult(data);
+    },
+
+    async applyHeal(dryRun) {
+      if (!this.requireProject()) return;
+      const confirmMsg = dryRun
+        ? 'Dry-run modunda ne değişeceği simüle edilecek, dosya yazılmayacak.'
+        : '⚠ Patch doğrudan uygulanacak. Robot dosyalarının yedeği otomatik alınır (.bak). Devam etmek istediğinizden emin misiniz?';
+      const ok = await this.confirm(dryRun ? 'Dry-Run Başlat' : 'Patch Uygula', confirmMsg);
+      if (!ok) return;
+
+      const btnId = dryRun ? 'btn-dry-run' : 'btn-apply-live';
+      this.setLoadingCustom(btnId, true, 'Uygulanıyor...');
+      const r = await fetch(`/api/projects/${this.activeProject}/heal/apply`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ dry_run: dryRun, only_high: false })
+      });
+      const data = await r.json();
+      this.setLoadingCustom(btnId, false, dryRun ? 'Dry-Run' : 'Patch Uygula');
+      this.renderHealResult(data, true);
+    },
+
+    renderHealResult(res, showPatchResults = false) {
+      const el = document.getElementById('heal-result');
+      if (!res.ok) { el.innerHTML = this.errorHtml(res.errors || [res.error]); return; }
+      const d = res.data;
+      const stats = d.stats || {};
+
+      const confMap = { high: 'badge-high', medium: 'badge-medium', low: 'badge-low' };
+      const sugRows = (d.suggestions || []).map(s => `<tr>
+        <td><span class="${confMap[s.confidence] || 'badge-low'}">${(s.confidence||'').toUpperCase()}</span></td>
+        <td style="font-size:0.75rem;color:#6c757d;">${this.shortPath(s.file)}:${s.line}</td>
+        <td><span class="code" style="color:var(--pc-danger);font-size:0.75rem;">${s.original}</span></td>
+        <td><span class="code" style="color:var(--pc-success);font-size:0.75rem;">${s.suggested || '(öneri yok)'}</span></td>
+        <td style="font-size:0.75rem;color:#6c757d;">${s.reason || '—'}</td>
+      </tr>`).join('');
+
+      let patchHtml = '';
+      if (showPatchResults && d.patch_results) {
+        const pr = d.patch_results;
+        const isDry = d.dry_run;
+        patchHtml = `<div class="alert ${isDry ? 'alert-info' : 'alert-success'} mb-4" style="font-size:0.875rem;">
+          <strong>${isDry ? 'Dry-Run Sonucu' : 'Patch Uygulandı'}</strong> —
+          ${(pr.applied||[]).length} dosya ${isDry ? 'uygulanabilir' : 'güncellendi'}
+          ${(pr.failed||[]).length ? `<span class="ms-3 text-danger">${pr.failed.length} hata</span>` : ''}
+        </div>`;
+      }
+
+      el.innerHTML = `
+        <div class="row g-3 mb-4">
+          ${this.statCardHtml('Toplam Öneri', stats.total_healed || 0, 'lightbulb', '')}
+          ${this.statCardHtml('Yüksek Güven', stats.high_confidence || 0, 'verified', 'score-high')}
+          ${this.statCardHtml('Orta Güven', stats.medium_confidence || 0, 'help_outline', 'score-medium')}
+          ${this.statCardHtml('Düşük Güven', stats.low_confidence || 0, 'info', 'score-critical')}
+        </div>
+        ${patchHtml}
+        ${(d.suggestions||[]).length ? `
+        <div class="card">
+          <div class="card-header d-flex align-items-center justify-content-between">
+            <span>Öneriler (${d.suggestions.length})</span>
+            <div class="d-flex gap-2">
+              <button id="btn-dry-run" onclick="App.applyHeal(true)" class="btn-secondary-custom btn-sm-custom">Dry-Run</button>
+              <button id="btn-apply-live" onclick="App.applyHeal(false)" class="btn-danger-custom btn-sm-custom">Patch Uygula</button>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead><tr><th style="width:85px">Güven</th><th>Dosya:Satır</th><th>Eski Locator</th><th>Yeni Öneri</th><th>Sebep</th></tr></thead>
+              <tbody>${sugRows}</tbody>
+            </table>
+            </div>
+          </div>
+        </div>` : `<div class="card"><div class="card-body empty-state">
+          <span class="material-icons" style="color:#17C666;">check_circle</span>
+          <p style="color:#6c757d;">Düzeltme önerisi bulunamadı.</p>
+        </div></div>`}
+        ${this.durationHtml(res.duration)}
+        ${this.slackBtn('heal', d, res.duration)}`;
+    },
+
+    // ── Patch Vue ─────────────────────────────────────────────
+    _patchPreviewData: null,
+
+    async runPatchPreview() {
+      if (!this.requireProject()) return;
+      this.setLoading('btn-patch-preview', true);
+      this._patchPreviewData = null;
+      const r = await fetch(`/api/projects/${this.activeProject}/patch-vue`, { method: 'POST' });
+      const data = await r.json();
+      this.setLoading('btn-patch-preview', false);
+      this.renderPatchVueResult(data, false);
+    },
+
+    _getSelectedPatchIndices() {
+      return Array.from(document.querySelectorAll('.chk-patch:checked'))
+        .map(cb => parseInt(cb.dataset.idx));
+    },
+
+    _updateSelectionCount() {
+      const total = document.querySelectorAll('.chk-patch').length;
+      const selected = document.querySelectorAll('.chk-patch:checked').length;
+      const el = document.getElementById('patch-sel-count');
+      if (el) el.textContent = `${selected} / ${total} seçili`;
+    },
+
+    async runPatchApply(dryRun) {
+      if (!this.requireProject()) return;
+      const selectedIndices = this._getSelectedPatchIndices();
+      if (selectedIndices.length === 0) {
+        this.showToast('Hiç satır seçilmedi. Uygulamak istediğiniz satırları işaretleyin.', 'warning');
+        return;
+      }
+      const confirmMsg = dryRun
+        ? `Dry-run: ${selectedIndices.length} satır simüle edilecek (dosya değişmeyecek).`
+        : `⚠ ${selectedIndices.length} element Vue dosyalarına eklenecek. Devam etmek istediğinizden emin misiniz?`;
+      const ok = await this.confirm(dryRun ? 'Dry-Run' : 'Uygula', confirmMsg);
+      if (!ok) return;
+      const r = await fetch(`/api/projects/${this.activeProject}/patch-vue/apply`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ dry_run: dryRun, selected_indices: selectedIndices }),
+      });
+      const data = await r.json();
+      this.renderPatchVueResult(data, true);
+    },
+
+    renderPatchVueResult(res, showApplyResult) {
+      const el = document.getElementById('patch-vue-result');
+      if (!res.ok) { el.innerHTML = this.errorHtml(res.errors || [res.error]); return; }
+      const d = res.data;
+      const stats = d.stats || {};
+      const applyResult = d.apply_result;
+
+      const sevMap = { critical: 'badge-critical', warning: 'badge-warning', info: 'badge-info' };
+      const robotDriven = d.robot_driven || [];
+      const auditDriven = d.audit_driven || [];
+      const totalPatches = robotDriven.length + auditDriven.length;
+
+      // Global index: robot_driven[0..n-1], audit_driven[n..n+m-1]
+      let gIdx = 0;
+
+      // Robot-driven tablo satırları (checkbox + global index)
+      const robotRows = (items) => items.map(p => {
+        const idx = gIdx++;
+        return `<tr>
+          <td style="width:36px;text-align:center;"><input type="checkbox" class="chk-patch chk-patch-robot" data-idx="${idx}" checked onchange="App._updateSelectionCount()"></td>
+          <td><span class="${sevMap[p.severity]||'badge-info'}">${(p.severity||'').toUpperCase()}</span></td>
+          <td style="color:#adb5bd;white-space:nowrap;font-size:0.72rem;">${p.vue_file_name}:${p.vue_line}</td>
+          <td><span class="code">&lt;${p.vue_tag}&gt;</span></td>
+          <td style="font-size:0.72rem;color:#6c757d;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${p.original_snippet}">${p.original_snippet||'—'}</td>
+          <td><span class="code" style="color:var(--pc-primary);font-size:0.72rem;">${p.attr_to_add}="${p.attr_value}"</span></td>
+          <td style="font-size:0.7rem;">
+            <span style="color:#adb5bd;">${p.robot_file||'—'}${p.robot_line?':'+p.robot_line:''}</span>
+            ${p.robot_locator_value ? `<div class="code" style="color:var(--pc-danger);margin-top:2px;">${p.robot_locator_value}</div>` : ''}
+          </td>
+          <td>${p.robot_update_to ? `<span class="code" style="color:var(--pc-success);font-size:0.72rem;">${p.robot_update_to}</span>` : '<span style="color:#adb5bd;">—</span>'}</td>
+        </tr>`;
+      }).join('');
+
+      // Audit-driven tablo satırları (checkbox + global index)
+      const auditRows = (items) => items.map(p => {
+        const idx = gIdx++;
+        return `<tr>
+          <td style="width:36px;text-align:center;"><input type="checkbox" class="chk-patch chk-patch-audit" data-idx="${idx}" checked onchange="App._updateSelectionCount()"></td>
+          <td><span class="${sevMap[p.severity]||'badge-info'}">${(p.severity||'').toUpperCase()}</span></td>
+          <td style="color:#adb5bd;white-space:nowrap;font-size:0.72rem;">${p.vue_file_name}:${p.vue_line}</td>
+          <td><span class="code">&lt;${p.vue_tag}&gt;</span></td>
+          <td style="font-size:0.72rem;color:#6c757d;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${p.original_snippet}">${p.original_snippet||'—'}</td>
+          <td><span class="code" style="color:var(--pc-primary);font-size:0.72rem;">${p.attr_to_add}="${p.attr_value}"</span></td>
+        </tr>`;
+      }).join('');
+
+      let applyHtml = '';
+      if (showApplyResult && applyResult) {
+        const isDry = applyResult.dry_run;
+        const appliedCount = (applyResult.applied || []).length;
+        const failedCount = (applyResult.failed || []).length;
+        const robotUpdates = (applyResult.applied || []).filter(a => a.robot_update_to);
+        applyHtml = `
+          <div class="alert ${isDry ? 'alert-info' : 'alert-success'} mb-4" style="font-size:0.875rem;">
+            <strong>${isDry ? 'Dry-Run Sonucu' : '✓ Vue Dosyaları Güncellendi'}</strong> —
+            ${appliedCount} element ${isDry ? 'eklenebilir' : 'güncellendi'}
+            ${failedCount ? `<span class="ms-3 text-danger">${failedCount} hata</span>` : ''}
+          </div>
+          ${!isDry && robotUpdates.length ? `
+          <div class="alert alert-warning mb-4" style="font-size:0.875rem;">
+            <strong>Sonraki Adım: Robot Locator Güncellemesi</strong> —
+            ${robotUpdates.length} Robot locator artık <strong>id=</strong> locator kullanabilir.
+            <br><span style="font-size:0.8rem;color:#856404;">
+              <span class="material-icons" style="font-size:12px;vertical-align:middle;">arrow_forward</span>
+              Heal sekmesine geçin → Çapraz Analiz yapın → riskli/kırık locator'ları güncelleyin.
+            </span>
+          </div>` : ''}
+          ${(applyResult.failed||[]).length ? `<div class="card mb-4">
+            <div class="card-header" style="color:var(--pc-danger);">Başarısız (${failedCount})</div>
+            <div class="card-body p-0"><table class="table mb-0">
+              <thead><tr><th>Dosya</th><th>Satır</th><th>Hata</th></tr></thead>
+              <tbody>${(applyResult.failed||[]).map(f=>`<tr>
+                <td class="code">${f.file}</td><td>${f.line}</td>
+                <td style="color:var(--pc-danger);font-size:0.8rem;">${f.error||'—'}</td>
+              </tr>`).join('')}</tbody>
+            </table></div>
+          </div>` : ''}`;
+      }
+
+      // Selection bar (only shown when there are patches and not a post-apply view)
+      const selectionBar = (!showApplyResult && totalPatches) ? `
+        <div class="card mb-3" style="border:1px solid #dee2e6;">
+          <div class="card-body py-2 d-flex align-items-center justify-content-between" style="gap:12px;">
+            <div class="d-flex align-items-center gap-3">
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="chk-all-global" checked
+                  onchange="document.querySelectorAll('.chk-patch').forEach(c=>c.checked=this.checked);App._updateSelectionCount()">
+                <label class="form-check-label" for="chk-all-global" style="font-size:0.8rem;cursor:pointer;">Tümünü Seç</label>
+              </div>
+              <span id="patch-sel-count" style="font-size:0.8rem;color:#6c757d;">${totalPatches} / ${totalPatches} seçili</span>
+            </div>
+            <div class="d-flex gap-2">
+              <button onclick="App.runPatchApply(true)" class="btn-secondary-custom btn-sm-custom">
+                <span class="material-icons" style="font-size:13px;vertical-align:middle;margin-right:3px;">science</span>Dry-Run
+              </button>
+              <button onclick="App.runPatchApply(false)" class="btn-primary-custom btn-sm-custom">
+                <span class="material-icons" style="font-size:13px;vertical-align:middle;margin-right:3px;">add_task</span>Seçilileri Uygula
+              </button>
+            </div>
+          </div>
+        </div>` : '';
+
+      el.innerHTML = `
+        <div class="row g-3 mb-4">
+          ${this.statCardHtml('Robot-Driven', stats.robot_driven||0, 'smart_toy', stats.robot_driven > 0 ? 'score-medium' : '')}
+          ${this.statCardHtml('Audit-Driven', stats.audit_driven||0, 'add_task', stats.audit_driven > 0 ? 'score-medium' : '')}
+          ${this.statCardHtml('Toplam', stats.total||0, 'edit_note', stats.total > 0 ? 'score-medium' : 'score-high')}
+          ${this.statCardHtml('Etkilenen Dosya', stats.files||0, 'folder_open', '')}
+        </div>
+        ${applyHtml}
+        ${selectionBar}
+        ${robotDriven.length ? `
+        <div class="card mb-4">
+          <div class="card-header d-flex align-items-center">
+            <input type="checkbox" id="chk-all-robot" checked class="me-2"
+              onchange="document.querySelectorAll('.chk-patch-robot').forEach(c=>c.checked=this.checked);App._updateSelectionCount()">
+            <span><span class="material-icons" style="font-size:15px;vertical-align:middle;margin-right:4px;color:#3ec9d6;">smart_toy</span>Robot-Driven: id Ekle (${robotDriven.length})</span>
+          </div>
+          <div style="padding:8px 16px;background:#f0f9ff;border-bottom:1px solid #e9ecef;color:#0c6e7a;font-size:0.72rem;">
+            Robot bu elementleri kırılgan yollarla (class, xpath, css) buluyor.
+            Vue elementlerine <strong>id</strong> eklenerek Robot daha stabil <code>id=</code> locator kullanabilir.
+          </div>
+          <div class="table-responsive">
+          <table class="table table-hover mb-0" style="font-size:0.8rem;">
+            <thead><tr>
+              <th style="width:36px"></th>
+              <th style="width:75px">Seviye</th><th>Vue Dosya:Satır</th><th style="width:60px">Tag</th>
+              <th>Mevcut Kod</th><th>Eklenecek</th><th>Robot Locator (mevcut)</th><th>Robot Önerisi</th>
+            </tr></thead>
+            <tbody>${robotRows(robotDriven)}</tbody>
+          </table>
+          </div>
+        </div>` : ''}
+        ${auditDriven.length ? `
+        <div class="card mb-4">
+          <div class="card-header d-flex align-items-center">
+            <input type="checkbox" id="chk-all-audit" checked class="me-2"
+              onchange="document.querySelectorAll('.chk-patch-audit').forEach(c=>c.checked=this.checked);App._updateSelectionCount()">
+            <span><span class="material-icons" style="font-size:15px;vertical-align:middle;margin-right:4px;color:var(--pc-warning);">add_task</span>Audit-Driven: data-test Ekle (${auditDriven.length})</span>
+          </div>
+          <div style="padding:8px 16px;background:#fffdf0;border-bottom:1px solid #e9ecef;color:#856404;font-size:0.72rem;">
+            Bu elementler Robot testlerinde henüz referans alınmıyor.
+            <strong>data-test</strong> eklenerek gelecekteki stabil locator kullanımı hazırlanır.
+          </div>
+          <div class="table-responsive">
+          <table class="table table-hover mb-0" style="font-size:0.8rem;">
+            <thead><tr>
+              <th style="width:36px"></th>
+              <th style="width:75px">Seviye</th><th>Vue Dosya:Satır</th><th style="width:60px">Tag</th>
+              <th>Mevcut Kod</th><th>Eklenecek</th>
+            </tr></thead>
+            <tbody>${auditRows(auditDriven)}</tbody>
+          </table>
+          </div>
+        </div>` : ''}
+        ${totalPatches === 0 ? `<div class="card"><div class="card-body empty-state">
+          <span class="material-icons" style="color:var(--pc-success);">check_circle</span>
+          <p style="color:var(--pc-success);font-weight:600;">Tüm interaktif elementler stabil locator kullanıyor!</p>
+        </div></div>` : ''}
+        ${this.durationHtml(res.duration)}
+        ${showApplyResult && d.apply_result ? this.slackBtn('patch-vue', d, res.duration) : ''}`;
+    },
+
+    // ── Diff ──────────────────────────────────────────────────
+    async runDiff() {
+      if (!this.requireProject()) return;
+      this.setLoading('btn-diff', true);
+      const r = await fetch(`/api/projects/${this.activeProject}/diff`, { method: 'POST' });
+      const data = await r.json();
+      this.setLoading('btn-diff', false);
+      this.renderDiffResult(data);
+    },
+
+    renderDiffResult(res) {
+      const el = document.getElementById('diff-result');
+      if (!res.ok) { el.innerHTML = this.errorHtml(res.errors || [res.error]); return; }
+      const d = res.data;
+      const s = d.summary;
+      const si = d.scan_info;
+
+      const impactColor = s.affected_robot_count > 0 ? 'score-critical' : 'score-high';
+
+      const removedRows = d.removed.map(c => `<tr>
+        <td><span class="badge-critical">SİLİNDİ</span></td>
+        <td><span class="code" style="font-size:0.72rem;">${c.selector_type}</span></td>
+        <td><span class="code" style="color:var(--pc-danger);font-size:0.72rem;">${c.old_value || '—'}</span></td>
+        <td style="font-size:0.75rem;color:#6c757d;">${c.old_file ? c.old_file + ':' + c.old_line : '—'}</td>
+        <td style="font-size:0.72rem;">
+          ${c.affected_locators.length
+            ? c.affected_locators.map(l => `<span class="code d-block mb-1" style="color:var(--pc-danger);">${l.file}:${l.line}</span>`).join('')
+            : '<span style="color:#adb5bd;">—</span>'}
+        </td>
+      </tr>`).join('');
+
+      const renamedRows = d.renamed.map(c => `<tr>
+        <td><span class="badge-warning">YEN. ADLANDIRILDI</span></td>
+        <td><span class="code" style="font-size:0.72rem;">${c.selector_type}</span></td>
+        <td>
+          <span class="code" style="color:var(--pc-danger);font-size:0.72rem;text-decoration:line-through;">${c.old_value}</span>
+          <span style="color:#adb5bd;margin:0 4px;">&#8594;</span>
+          <span class="code" style="color:var(--pc-success);font-size:0.72rem;">${c.new_value}</span>
+        </td>
+        <td style="font-size:0.75rem;color:#6c757d;">${c.old_file ? c.old_file + ':' + c.old_line : '—'}</td>
+        <td style="font-size:0.72rem;">
+          ${c.affected_locators.length
+            ? c.affected_locators.map(l => `<span class="code d-block mb-1" style="color:var(--pc-warning);">${l.file}:${l.line}</span>`).join('')
+            : '<span style="color:#adb5bd;">—</span>'}
+        </td>
+      </tr>`).join('');
+
+      const addedRows = d.added.map(c => `<tr>
+        <td><span class="badge-high">EKLENDİ</span></td>
+        <td><span class="code" style="font-size:0.72rem;">${c.selector_type}</span></td>
+        <td><span class="code" style="color:var(--pc-success);font-size:0.72rem;">${c.new_value || '—'}</span></td>
+        <td style="font-size:0.75rem;color:#6c757d;">${c.new_file ? c.new_file + ':' + c.new_line : '—'}</td>
+        <td style="color:#adb5bd;font-size:0.72rem;">—</td>
+      </tr>`).join('');
+
+      el.innerHTML = `
+        <div class="row g-3 mb-4">
+          ${this.statCardHtml('Silinen Selector', s.removed_count, 'remove_circle', s.removed_count > 0 ? 'score-critical' : '')}
+          ${this.statCardHtml('Yeniden Adlandırılan', s.renamed_count, 'drive_file_rename_outline', s.renamed_count > 0 ? 'score-medium' : '')}
+          ${this.statCardHtml('Yeni Eklenen', s.added_count, 'add_circle', 'score-high')}
+          ${this.statCardHtml('Etkilenen Robot Loc.', s.affected_robot_count, 'link_off', impactColor)}
+        </div>
+        <div class="card mb-4">
+          <div class="card-body d-flex gap-4 flex-wrap" style="font-size:0.8rem;">
+            <div><span style="color:#6c757d;font-weight:600;">Eski Vue:</span> <span style="color:#495057;">${si.old_vue_path}</span> <span class="badge-info ms-1">${si.old_vue_files} dosya</span></div>
+            <div><span style="color:#6c757d;font-weight:600;">Yeni Vue:</span> <span style="color:#495057;">${si.new_vue_path}</span> <span class="badge-info ms-1">${si.new_vue_files} dosya</span></div>
+            <div><span style="color:#6c757d;font-weight:600;">Robot Locator:</span> <span style="color:#495057;">${si.robot_locators}</span></div>
+          </div>
+        </div>
+        ${s.affected_robot_count === 0 && s.removed_count === 0 && s.renamed_count === 0
+          ? `<div class="card"><div class="card-body empty-state">
+               <span class="material-icons" style="color:var(--pc-success);">check_circle</span>
+               <p style="color:var(--pc-success);font-weight:600;">Hiçbir değişiklik tespit edilmedi. Robot testleri güvende!</p>
+             </div></div>`
+          : `<div class="card">
+               <div class="card-header">Değişiklikler (${s.removed_count + s.renamed_count + s.added_count})</div>
+               <div class="card-body p-0">
+                 <div class="table-responsive">
+                 <table class="table table-hover mb-0">
+                   <thead><tr>
+                     <th style="width:155px">Durum</th>
+                     <th style="width:80px">Tip</th>
+                     <th>Değişen Değer</th>
+                     <th style="width:160px">Dosya:Satır</th>
+                     <th>Etkilenen Robot Locator</th>
+                   </tr></thead>
+                   <tbody>${removedRows}${renamedRows}${addedRows}</tbody>
+                 </table>
+                 </div>
+               </div>
+             </div>`}
+        ${this.durationHtml(res.duration)}
+        ${this.slackBtn('diff', d, res.duration)}`;
+    },
+
+    // ── Reports ───────────────────────────────────────────────
+    async loadReports() {
+      const r = await fetch('/api/reports').then(r => r.json());
+      const el = document.getElementById('reports-list');
+      if (!r.reports.length) { el.innerHTML = '<span style="font-style:italic;">Henüz rapor yok</span>'; return; }
+      el.innerHTML = r.reports.slice(0,5).map(rep =>
+        `<a href="/api/reports/${rep.filename}" target="_blank" class="report-link" title="${rep.filename}">
+           ${rep.filename.replace('vue_test_healer_','')}
+         </a>`
+      ).join('');
+    },
+
+    // ── Helpers ───────────────────────────────────────────────
+    statCardHtml(label, value, icon, colorClass) {
+      return `<div class="col-6 col-md-3">
+        <div class="card text-center">
+          <div class="card-body">
+            <span class="material-icons-two-tone" style="font-size:28px;margin-bottom:8px;display:block;">${icon}</span>
+            <div class="stat-val ${colorClass}">${value}</div>
+            <div class="stat-label">${label}</div>
+          </div>
+        </div>
+      </div>`;
+    },
+
+    distBarHtml(label, count, total, color, textClass) {
+      const pct = Math.round(count / total * 100);
+      return `<div class="mb-3">
+        <div class="d-flex justify-content-between mb-1" style="font-size:0.78rem;">
+          <span class="${textClass} fw-semibold">${label}</span>
+          <span style="color:#6c757d;">${count} (${pct}%)</span>
+        </div>
+        <div class="dist-bar-wrap">
+          <div class="dist-bar" style="width:${pct}%;background:${color};"></div>
+        </div>
+      </div>`;
+    },
+
+    scoreClass(s) {
+      if (s >= 80) return 'score-high';
+      if (s >= 50) return 'score-medium';
+      if (s >= 30) return 'score-low';
+      return 'score-critical';
+    },
+
+    scoreBadge(s) {
+      if (s >= 80) return 'badge-high';
+      if (s >= 50) return 'badge-medium';
+      return 'badge-critical';
+    },
+
+    shortPath(p) {
+      if (!p) return '';
+      return p.replace(/\\/g,'/').split('/').pop();
+    },
+
+    errorHtml(errors, showToast = true) {
+      const errs = errors || [];
+      // Busy (eş zamanlı analiz) mesajını ayrı göster
+      const isBusy = errs.length === 1 && errs[0].includes('devam ediyor');
+      if (showToast) {
+        this.showToast(errs[0] || 'Bilinmeyen hata', isBusy ? 'warning' : 'danger');
+      }
+      return `<div class="alert alert-danger" style="font-size:0.875rem;">
+        <strong class="d-block mb-2">${isBusy ? '⏳ Analiz Bekleniyor' : '✕ Hata oluştu:'}</strong>
+        <ul class="mb-0 ps-3">${errs.map(e => `<li>${e}</li>`).join('')}</ul>
+      </div>`;
+    },
+
+    durationHtml(duration) {
+      return `<p style="font-size:0.72rem;color:#adb5bd;margin-top:12px;">Süre: ${duration}s · ${new Date().toLocaleTimeString('tr-TR')}</p>`;
+    },
+
+    slackBtn(reportType, data, duration) {
+      return `<button onclick="App.sendSlack('${reportType}', ${JSON.stringify(data).replace(/"/g,'&quot;')}, ${duration})"
+        class="btn-secondary-custom btn-sm-custom" style="display:inline-flex;align-items:center;gap:5px;margin-top:8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Slack'e Gönder
+      </button>`;
+    },
+
+    async sendSlack(reportType, data, duration) {
+      if (!this.requireProject()) return;
+      const r = await fetch(`/api/projects/${this.activeProject}/slack-report`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ report_type: reportType, data, duration }),
+      });
+      const res = await r.json();
+      if (res.ok) {
+        this.showToast('Slack mesajı gönderildi!', 'success');
+      } else {
+        this.showToast((res.errors || ['Slack gönderilemedi'])[0], 'danger');
+      }
+    },
+
+    // ── Confirm Dialog ────────────────────────────────────────
+    confirm(title, message) {
+      return new Promise(resolve => {
+        this.confirmResolve = resolve;
+        document.getElementById('confirm-title').textContent = title;
+        document.getElementById('confirm-message').textContent = message;
+        document.getElementById('confirm-modal').style.display = 'flex';
+      });
+    },
+
+    closeConfirm(result) {
+      document.getElementById('confirm-modal').style.display = 'none';
+      if (this.confirmResolve) { this.confirmResolve(result); this.confirmResolve = null; }
+    },
+  };
+
+  document.addEventListener('DOMContentLoaded', () => App.init());
+</script>
+</body>
+</html>

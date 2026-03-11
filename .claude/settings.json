@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(source venv/Scripts/activate)",
+      "Bash(pip install -r requirements.txt)",
+      "Bash(python main.py status)",
+      "Bash(PYTHONIOENCODING=utf-8 PYTHONUTF8=1 source venv/Scripts/activate)",
+      "Bash(python main.py vue-only)",
+      "Bash(powershell.exe -Command \"Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force; Write-Host ''OK''\")",
+      "Bash(python -m pytest tests/ -v)",
+      "Bash(venv/Scripts/pip install pytest -q)",
+      "Bash(venv/Scripts/python -m pytest tests/ -v)",
+      "Bash(venv/Scripts/pip.exe install pytest)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(venv/Scripts/python.exe -m pip install pytest)",
+      "Bash(venv/Scripts/python.exe -m pytest tests/ -v)",
+      "Bash(venv/Scripts/python.exe main.py status)",
+      "Bash(venv/Scripts/python.exe main.py data-test-audit)",
+      "Bash(venv/Scripts/python.exe main.py analyze)",
+      "Bash(venv/Scripts/python.exe main.py heal)",
+      "Read(//c/Users/tolga/OneDrive/Masaüstü/Yeni klasör/qa_dashboard/templates/partials/**)",
+      "Read(//c/Users/tolga/OneDrive/Masaüstü/Yeni klasör/qa_dashboard/static/assets/js/charts/**)"
+    ]
+  }
+}

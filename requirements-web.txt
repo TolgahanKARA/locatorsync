@@ -1,0 +1,4 @@
+# Web bağımlılıkları requirements.txt ile birleştirildi.
+# Lütfen bunun yerine requirements.txt kullanın:
+#   pip install -r requirements.txt
+-r requirements.txt
