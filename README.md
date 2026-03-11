@@ -188,6 +188,9 @@ Arayüz Sigortam.net marka kimliği esas alınarak tasarlanmıştır:
 - **Vue Fark Analizi:** Eski/yeni Vue karşılaştırması, etkilenen Robot locator'ları
 - **data-test Ekle:** Vue dosyalarına otomatik `data-test` ekler — Önizle → satır satır seçim (checkbox) → Dry-Run → Seçilileri Uygula akışı
 - **Eşik alanları:** Proje formunda RF locator hiyerarşisini gösteren "Skor Tablosu" açılır; UYARI/KRİTİK etiketleri ile eşik açıklamaları
+- **Tarama Önceliği:** Proje ayarlarında klasör öncelik sırası belirlenir (örn. `po, app, test, object`). Robot dosyaları bu sırayla taranır; CSS ve XPath locator'ları sonuç tablolarında otomatik olarak öne alınır ve mor renk ile vurgulanır.
+- **Klasör Etiketleri:** Analiz sonuçlarında her locator satırında dosyanın ait olduğu klasör türü (PO / App / Test / Obj) badge olarak gösterilir.
+- **Sticky Tablo Başlıkları:** Uzun sonuç listelerinde aşağı kaydırıldığında sütun başlıkları (Dosya:Satır, Locator, Skor vb.) ekranın üstünde sabit kalır.
 - **Slack Entegrasyonu:** Her analiz sonucu ekranında "Slack'e Gönder" butonu; proje bazlı Incoming Webhook URL ile Block Kit formatında rapor gönderilir
 - **Eş Zamanlı Koruma:** Aynı anda yalnızca bir analiz çalışır (`asyncio.Lock`); ikinci istek "Analiz devam ediyor" uyarısı alır
 - **Hata Bildirimi:** API hataları hem inline hem Vue tarzı bottom-center fade toast ile QA geliştiricisine gösterilir
