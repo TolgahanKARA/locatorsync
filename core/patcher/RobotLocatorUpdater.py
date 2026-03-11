@@ -92,9 +92,9 @@ class RobotLocatorUpdater:
     def preview(self) -> RobotUpdateReport:
         report = RobotUpdateReport()
 
-        # Vue'dan data-test → id haritası çıkar
-        dt_to_id = self._build_dt_to_id_map()
-        if not dt_to_id:
+        # Vue'dan data-test -> id haritasi cikar
+        dt_to_id, skipped_non_unique = self._build_dt_to_id_map()
+        if not dt_to_id and not skipped_non_unique:
             report.stats = {
                 "total_changes": 0,
                 "robot_files": 0,
@@ -102,7 +102,7 @@ class RobotLocatorUpdater:
             }
             return report
 
-        # Robot dosyalarını tara
+        # Robot dosyalarini tara
         robot_errors = self.config.validate_robot()
         if not robot_errors:
             self._find_changes(dt_to_id, report)
@@ -112,28 +112,41 @@ class RobotLocatorUpdater:
             "total_changes": len(report.changes),
             "robot_files": by_file,
             "vue_elements_with_id": len(dt_to_id),
+            "skipped_non_unique": skipped_non_unique,        # coklu element, ayni data-test
             "robot_available": not bool(robot_errors),
-            # Debug: ilk 10 statik eşleşmeyi göster
+            # Debug: ilk 10 statik eslemeyi goster
             "debug_dt_to_id_sample": dict(list(dt_to_id.items())[:10]),
         }
         return report
 
-    def _build_dt_to_id_map(self) -> dict[str, str]:
-        """Vue'dan hem data-test hem id olan elementlerin haritası: {data_test_value: id_value}
-        Yalnızca statik binding — dinamik (:data-test="expr") elementler hariç tutulur
-        çünkü runtime değerleri statik olarak belirlenemez."""
+    def _build_dt_to_id_map(self) -> tuple[dict[str, str], list[str]]:
+        """Vue'dan hem data-test hem id olan elementlerin haritasi: {data_test_value: id_value}
+        - Yalnizca statik binding — dinamik (:data-test="expr") elementler haric tutulur.
+        - Ayni data-test degerine sahip birden fazla element varsa (non-unique) atlanir;
+          hangi elementin hangi Robot locatora karsalik geldigi bilinemez.
+        Returns: (dt_to_id, skipped_non_unique_list)"""
         scanner = VueScanner(self.config)
         elements = scanner.scan()
-        dt_to_id: dict[str, str] = {}
+
+        # data-test degerine gore grupla (id olan statik elementler)
+        dt_groups: dict[str, list[str]] = {}
         for el in elements:
-            if not el.element_id:
+            if not el.element_id or el.is_dynamic_binding:
                 continue
-            if el.is_dynamic_binding:
-                continue  # JS expression — gerçek data-test değeri bilinmiyor
             dt_value = el.data_test or el.data_testid
             if dt_value:
-                dt_to_id[dt_value] = el.element_id
-        return dt_to_id
+                dt_groups.setdefault(dt_value, []).append(el.element_id)
+
+        dt_to_id: dict[str, str] = {}
+        skipped_non_unique: list[str] = []
+        for dt_value, ids in dt_groups.items():
+            if len(ids) == 1:
+                dt_to_id[dt_value] = ids[0]
+            else:
+                # Birden fazla element ayni data-test'i paylasiyor -> otomatik donusurum guvenli degil
+                skipped_non_unique.append(dt_value)
+
+        return dt_to_id, skipped_non_unique
 
     def _find_changes(self, dt_to_id: dict, report: RobotUpdateReport):
         """Robot dosyalarını tara, data-test tabanlı locatorları bul ve eşleştir."""

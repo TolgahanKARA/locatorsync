@@ -547,12 +547,6 @@
       <li class="pc-nav-label">Analizler</li>
 
       <li class="pc-item">
-        <button class="pc-link active" data-tab="audit" onclick="App.switchTab('audit')">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 11L12 14L22 4M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span>Data-Test Audit</span>
-        </button>
-      </li>
-      <li class="pc-item">
         <button class="pc-link" data-tab="vue-only" onclick="App.switchTab('vue-only')">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 20V10M12 20V4M6 20V14" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <span>Vue Analizi</span>
@@ -648,29 +642,8 @@
 <div class="pc-container">
   <div class="pcoded-content">
 
-    <!-- ── AUDIT TAB ── -->
-    <div id="tab-audit" class="tab-content-panel active">
-      <div class="page-header">
-        <div class="d-flex align-items-start justify-content-between">
-          <div>
-            <h5>Data-Test Audit</h5>
-            <p>Vue bileşenlerinde <code class="code">data-test</code> attribute'u eksik olan etkileşimli elementleri tespit eder.</p>
-          </div>
-          <div class="d-flex align-items-center gap-2">
-            <label class="form-label-custom mb-0 me-1" style="white-space:nowrap;">Min. kapsama:</label>
-            <input type="number" id="audit-min-coverage" value="80" min="0" max="100"
-              class="form-control-custom" style="width:70px;" />
-            <button id="btn-audit" class="btn-primary-custom" onclick="App.runAudit()">
-              <span class="material-icons" style="font-size:14px;vertical-align:middle;margin-right:4px;">play_arrow</span>Çalıştır
-            </button>
-          </div>
-        </div>
-      </div>
-      <div id="audit-result"></div>
-    </div>
-
     <!-- ── VUE ONLY TAB ── -->
-    <div id="tab-vue-only" class="tab-content-panel">
+    <div id="tab-vue-only" class="tab-content-panel active">
       <div class="page-header">
         <div class="d-flex align-items-start justify-content-between">
           <div>
@@ -1045,7 +1018,6 @@
   });
 
   const TAB_TITLES = {
-    'audit': 'Data-Test Audit',
     'vue-only': 'Vue Stabilite Analizi',
     'analyze': 'Çapraz Analiz',
     'heal': 'Heal',
@@ -1126,7 +1098,7 @@
         <div><span style="color:#505a67;">Eşik:</span> <span style="color:#adb5bd;">${project.stability_threshold} / kritik ${project.critical_threshold}</span></div>
       `;
 
-      ['audit-result','vue-only-result','analyze-result','heal-result','diff-result','patch-vue-result','id-patch-result','robot-update-result'].forEach(id => {
+      ['vue-only-result','analyze-result','heal-result','diff-result','patch-vue-result','id-patch-result','robot-update-result'].forEach(id => {
         document.getElementById(id).innerHTML = '';
       });
     },
@@ -1344,8 +1316,8 @@
     setLoading(btnId, loading) {
       const btn = document.getElementById(btnId);
       if (!btn) return;
-      const labels = { 'btn-audit': 'Çalıştır', 'btn-vue-only': 'Çalıştır', 'btn-analyze': 'Çalıştır', 'btn-heal': 'Önerileri Getir', 'btn-diff': 'Analiz Et', 'btn-patch-preview': 'Önizle' };
-      const icons = { 'btn-audit': 'play_arrow', 'btn-vue-only': 'play_arrow', 'btn-analyze': 'play_arrow', 'btn-heal': 'auto_fix_high', 'btn-diff': 'compare', 'btn-patch-preview': 'preview' };
+      const labels = { 'btn-vue-only': 'Çalıştır', 'btn-analyze': 'Çalıştır', 'btn-heal': 'Önerileri Getir', 'btn-diff': 'Analiz Et', 'btn-patch-preview': 'Önizle' };
+      const icons = { 'btn-vue-only': 'play_arrow', 'btn-analyze': 'play_arrow', 'btn-heal': 'auto_fix_high', 'btn-diff': 'compare', 'btn-patch-preview': 'preview' };
       if (loading) {
         btn.disabled = true;
         btn.innerHTML = `<span class="spinner"></span> Çalışıyor...`;
@@ -1362,87 +1334,6 @@
       if (!btn) return;
       btn.disabled = loading;
       btn.innerHTML = loading ? `<span class="spinner"></span> ${label}` : label;
-    },
-
-    // ── Audit ─────────────────────────────────────────────────
-    async runAudit() {
-      if (!this.requireProject()) return;
-      const minCov = document.getElementById('audit-min-coverage').value || 80;
-      this.setLoading('btn-audit', true);
-      const r = await fetch(`/api/projects/${this.activeProject}/audit?min_coverage=${minCov}`, { method: 'POST' });
-      const data = await r.json();
-      this.setLoading('btn-audit', false);
-      this.renderAuditResult(data);
-    },
-
-    renderAuditResult(res) {
-      const el = document.getElementById('audit-result');
-      if (!res.ok) { el.innerHTML = this.errorHtml(res.errors || [res.error]); return; }
-      const d = res.data;
-      const s = d.summary;
-      const covPct = Math.min(s.coverage_percent, 100);
-      const covColor = s.coverage_percent >= 80 ? 'score-high' : s.coverage_percent >= 50 ? 'score-medium' : 'score-critical';
-      const covBg = s.coverage_percent >= 80 ? 'bg-success' : s.coverage_percent >= 50 ? 'bg-warning' : 'bg-danger';
-
-      let issuesHtml = '';
-      if (d.by_file && Object.keys(d.by_file).length) {
-        for (const [fname, issues] of Object.entries(d.by_file)) {
-          issuesHtml += `<div class="mb-4">
-            <div class="d-flex align-items-center gap-2 mb-2">
-              <span class="code">${fname}</span>
-              <span style="font-size:0.75rem;color:#adb5bd;">${issues.length} sorun</span>
-            </div>
-            <div class="table-responsive">
-            <table class="table table-hover mb-0">
-              <thead><tr>
-                <th style="width:90px">Seviye</th>
-                <th style="width:55px">Satır</th>
-                <th style="width:70px">Tag</th>
-                <th>Öneri</th>
-                <th>data-test Adı</th>
-              </tr></thead>
-              <tbody>
-              ${issues.map(i => `<tr>
-                <td><span class="badge-${i.severity === 'critical' ? 'critical' : i.severity === 'warning' ? 'warning' : 'info'}">${i.severity.toUpperCase()}</span></td>
-                <td style="color:#adb5bd;">${i.line}</td>
-                <td><span class="code">&lt;${i.tag}&gt;</span></td>
-                <td style="color:#495057;font-size:0.8rem;">${i.suggestion}</td>
-                <td><span class="code" style="color:var(--pc-primary);">${i.suggested_data_test || '—'}</span></td>
-              </tr>`).join('')}
-              </tbody>
-            </table>
-            </div>
-          </div>`;
-        }
-      } else {
-        issuesHtml = `<div class="empty-state"><span class="material-icons" style="color:var(--pc-success);">check_circle</span><p style="color:var(--pc-success);font-weight:600;">Tüm etkileşimli elementlerde data-test mevcut!</p></div>`;
-      }
-
-      el.innerHTML = `
-        <div class="row g-3 mb-4">
-          ${this.statCardHtml('Taranan Dosya', s.files_scanned, 'description', '')}
-          ${this.statCardHtml('İnteraktif Element', s.total_interactive, 'touch_app', '')}
-          ${this.statCardHtml('data-test Mevcut', s.covered, 'check_circle', 'score-high')}
-          ${this.statCardHtml('data-test Eksik', s.missing, 'cancel', 'score-critical')}
-        </div>
-        <div class="card mb-4">
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <span>Kapsama Oranı</span>
-            <span class="fw-bold fs-5 ${covColor}">${s.coverage_percent}%</span>
-          </div>
-          <div class="card-body">
-            <div class="prog-bar-wrap mb-2">
-              <div class="prog-bar ${covBg}" style="width:${covPct}%;"></div>
-            </div>
-            <p style="font-size:0.75rem;color:#adb5bd;margin:0;">${d.coverage_ok ? '✓ Hedef karşılandı' : '⚠ Hedefin altında'}</p>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header">Tespit Edilen Sorunlar (${s.missing})</div>
-          <div class="card-body">${issuesHtml}</div>
-        </div>
-        ${this.durationHtml(res.duration)}
-        ${this.slackBtn('audit', d, res.duration)}`;
     },
 
     // ── Vue Only ──────────────────────────────────────────────
@@ -1845,7 +1736,13 @@
             <span class="code" style="color:#17C666;margin-left:4px;">${u.new_value}</span>
           </div>`
         ).join('');
-        return `<tr>
+        const multiBadge = s.is_multi_instance
+          ? '<span style="font-size:0.65rem;background:#ff660022;color:#FF6600;border-radius:3px;padding:1px 5px;margin-left:4px;" title="Aynı data-test başka elementlerde de var — benzersiz index eklendi">çoklu</span>'
+          : '';
+        const robotCell = s.is_multi_instance
+          ? '<span style="color:#FF6600;font-size:0.72rem;" title="Aynı data-test birden fazla elementte kullanıldığından hangi Robot locatorın bu elemana karşılık geldiği belirlenemiyor.">⚠ Manuel inceleme gerekiyor</span>'
+          : (robotUpdates || '<span style="color:#adb5bd;font-size:0.72rem;">Robot eşleşmesi yok</span>');
+        return `<tr${s.is_multi_instance ? ' style="background:#fff8f5;"' : ''}>
           <td style="width:36px;text-align:center;">
             <input type="checkbox" class="chk-id-patch" data-idx="${i}" checked onchange="App._updateIdSelectionCount()">
           </td>
@@ -1854,10 +1751,11 @@
           <td style="font-size:0.75rem;">
             <span class="code" style="color:#6c757d;">${s.attr_source}="${s.data_test_value}"</span>
             <span style="color:#adb5bd;margin:0 4px;">→</span>
-            <span class="code" style="color:#7267EF;font-weight:600;">${s.id_attr||'id'}="${s.data_test_value}"</span>
+            <span class="code" style="color:#7267EF;font-weight:600;">${s.id_attr||'id'}="${s.generated_id || s.data_test_value}"</span>
             ${s.is_dynamic ? '<span style="font-size:0.65rem;background:#7267ef22;color:#7267EF;border-radius:3px;padding:1px 4px;margin-left:4px;">dynamic</span>' : ''}
+            ${multiBadge}
           </td>
-          <td>${robotUpdates || '<span style="color:#adb5bd;font-size:0.72rem;">Robot eşleşmesi yok</span>'}</td>
+          <td>${robotCell}</td>
         </tr>`;
       }).join('');
 
@@ -1881,25 +1779,34 @@
 
       el.innerHTML = `
         <div class="row g-3 mb-4">
-          <div class="col-md-4">
+          <div class="col-md-3">
             <div class="card text-center">
               <div class="card-body">
-                <div class="stat-val score-high">${stats.total_suggestions || 0}</div>
-                <div class="stat-label">id Eklenecek Element</div>
-                <div style="font-size:0.72rem;color:#adb5bd;margin-top:4px;">${stats.vue_files || 0} Vue dosyası</div>
+                <div class="stat-val score-high">${stats.unique_elements || 0}</div>
+                <div class="stat-label">Tekil Element</div>
+                <div style="font-size:0.72rem;color:#adb5bd;margin-top:4px;">Otomatik dönüşüm</div>
               </div>
             </div>
           </div>
-          <div class="col-md-4">
+          <div class="col-md-3">
+            <div class="card text-center">
+              <div class="card-body">
+                <div class="stat-val" style="color:#FF6600;">${stats.multi_instance_elements || 0}</div>
+                <div class="stat-label">Çoklu Element</div>
+                <div style="font-size:0.72rem;color:#adb5bd;margin-top:4px;">Manuel inceleme gerekiyor</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
             <div class="card text-center">
               <div class="card-body">
                 <div class="stat-val score-medium">${stats.robot_updates || 0}</div>
-                <div class="stat-label">Robot Locator Güncellenecek</div>
-                <div style="font-size:0.72rem;color:#adb5bd;margin-top:4px;">css=[data-test='X'] → id=X</div>
+                <div class="stat-label">Robot Locator</div>
+                <div style="font-size:0.72rem;color:#adb5bd;margin-top:4px;">data-test → css=#id</div>
               </div>
             </div>
           </div>
-          <div class="col-md-4">
+          <div class="col-md-3">
             <div class="card text-center">
               <div class="card-body">
                 <div class="stat-val" style="color:#7267EF;">id</div>
@@ -2029,7 +1936,7 @@
 
       el.innerHTML = `
         <div class="row g-3 mb-4">
-          <div class="col-md-4">
+          <div class="col-md-3">
             <div class="card text-center">
               <div class="card-body">
                 <div class="stat-val score-high">${stats.total_changes || 0}</div>
@@ -2038,7 +1945,7 @@
               </div>
             </div>
           </div>
-          <div class="col-md-4">
+          <div class="col-md-3">
             <div class="card text-center">
               <div class="card-body">
                 <div class="stat-val score-medium">${stats.vue_elements_with_id || 0}</div>
@@ -2047,16 +1954,31 @@
               </div>
             </div>
           </div>
-          <div class="col-md-4">
+          <div class="col-md-3">
             <div class="card text-center">
               <div class="card-body">
-                <div class="stat-val" style="color:#7267EF;">id=</div>
+                <div class="stat-val" style="color:#FF6600;">${(stats.skipped_non_unique || []).length}</div>
+                <div class="stat-label">Atlanan (Çoklu)</div>
+                <div style="font-size:0.72rem;color:#adb5bd;margin-top:4px;">Manuel inceleme gerekiyor</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card text-center">
+              <div class="card-body">
+                <div class="stat-val" style="color:#7267EF;">css=#</div>
                 <div class="stat-label">Hedef Locator</div>
-                <div style="font-size:0.72rem;color:#adb5bd;margin-top:4px;">css=[data-test='X'] → css=#X</div>
+                <div style="font-size:0.72rem;color:#adb5bd;margin-top:4px;">css=[data-test='X'] → css=#id</div>
               </div>
             </div>
           </div>
         </div>
+        ${(stats.skipped_non_unique || []).length > 0 ? `
+        <div class="alert mt-2" style="background:#fff8f5;border:1px solid #FF6600;font-size:0.8rem;">
+          <strong style="color:#FF6600;">⚠ Çoklu Element — Manuel İnceleme Gerekiyor (${stats.skipped_non_unique.length} data-test değeri)</strong><br>
+          Aşağıdaki data-test değerleri Vue'da birden fazla elementte kullanılıyor. Aynı ID iki elementa verilemeyeceğinden otomatik dönüşüm yapılamadı. Her birine benzersiz data-test + id değeri atanması gerekiyor:<br>
+          <code style="font-size:0.75rem;">${stats.skipped_non_unique.join(', ')}</code>
+        </div>` : ''}
         ${applyHtml}
         ${changes.length === 0 ? `
           <div class="alert alert-success">✓ ${showApplyResult && applyResult && !applyResult.dry_run ? 'Güncelleme tamamlandı — başka değiştirilecek locator kalmadı.' : 'Güncellenecek data-test locator bulunamadı.'}</div>

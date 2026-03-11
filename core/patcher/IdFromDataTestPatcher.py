@@ -2,16 +2,19 @@
 IdFromDataTestPatcher - Vue data-test attributelerini id'ye dönüştürür.
 
 Akış:
-  1. Vue dosyalarını tara → data-test olan ama id olmayan elementleri bul
-  2. Her element için id="<data-test-value>" öner
-  3. Robot dosyalarını tara → css=[data-test='X'] gibi locatorları bul
-  4. Bu locatorların id=X ile değiştirilmesi gerektiğini raporla
+  1. Vue dosyalarını tara -> data-test olan ama id olmayan elementleri bul
+  2. data-test degeri + element tag tipine gore benzersiz id uret
+     - Tekil element   : {tag_prefix}-{dt_slug}           (btn-test-form-inner-button)
+     - Coklu element   : {tag_prefix}-{dt_slug}-{index}   (btn-test-form-inner-button-1)
+  3. Robot dosyalarini tara -> tekil elementler icin locator guncellemesi oner
+     Coklu elementler manuel inceleme gerektirir (hangi index hangi Robot locatora karsalik
+     geliyor bilinemiyor).
 
-  preview()   → IdPatchReport (dosya değişmez)
-  apply(...)  → Vue'a id yazar + Robot locatorlarını günceller
+  preview()   -> IdPatchReport (dosya degismez)
+  apply(...)  -> Vue'a id yazar + Robot locatorlarini gunceller
 """
 import re
-from collections import defaultdict
+from collections import defaultdict, Counter
 from pathlib import Path
 from typing import Optional
 
@@ -20,10 +23,23 @@ from core.scanner.VueScanner import VueScanner
 from core.analyzer.LocatorExtractor import LocatorExtractor
 
 
+# ── Sabitler ─────────────────────────────────────────────────────────────────
+
+TAG_PREFIX = {
+    'button': 'btn', 'input': 'inp', 'span': 'spn',
+    'div': 'div', 'label': 'lbl', 'a': 'link',
+    'select': 'sel', 'textarea': 'txt', 'form': 'frm',
+    'img': 'img', 'ul': 'ul', 'li': 'li', 'p': 'p',
+    'section': 'sec', 'article': 'art', 'nav': 'nav',
+    'header': 'hdr', 'footer': 'ftr', 'main': 'main',
+    'table': 'tbl', 'tr': 'tr', 'td': 'td', 'th': 'th',
+}
+
+
 # ── Veri modelleri ───────────────────────────────────────────────────────────
 
 class RobotUpdate:
-    """Bir Robot dosyasında güncellenecek locator."""
+    """Bir Robot dosyasinda guncellenecek locator."""
     def __init__(self, robot_file: str, robot_line: int, old_value: str, new_value: str):
         self.robot_file = robot_file
         self.robot_line = robot_line
@@ -41,27 +57,31 @@ class RobotUpdate:
 
 
 class IdSuggestion:
-    """Tek bir Vue elementi için id ekleme önerisi."""
+    """Tek bir Vue elementi icin id ekleme onerisi."""
     def __init__(
         self,
         vue_file: str,
         vue_line: int,
         vue_tag: str,
-        data_test_value: str,       # data-test attribute değeri/expression'ı
+        data_test_value: str,       # data-test attribute degeri/expression'i
         attr_source: str,           # "data-test" | ":data-test" | "data-testid" | ":data-testid"
+        generated_id: str,          # Uretilen benzersiz id degeri
         original_snippet: str = "",
         robot_updates: Optional[list] = None,
-        is_dynamic: bool = False,   # True → :id yazılmalı (dynamic binding)
+        is_dynamic: bool = False,   # True -> :id yazilmali (dynamic binding)
+        is_multi_instance: bool = False,  # True -> ayni data-test baska elementlerde de var
     ):
         self.vue_file = vue_file
         self.vue_line = vue_line
         self.vue_tag = vue_tag
         self.data_test_value = data_test_value
         self.attr_source = attr_source
+        self.generated_id = generated_id
         self.original_snippet = original_snippet
         self.robot_updates: list[RobotUpdate] = robot_updates or []
         self.is_dynamic = is_dynamic
-        # Yazılacak attribute: dynamic → :id, static → id
+        self.is_multi_instance = is_multi_instance
+        # Yazilacak attribute: dynamic -> :id, static -> id
         self.id_attr = ":id" if is_dynamic else "id"
 
     def to_dict(self) -> dict:
@@ -72,9 +92,11 @@ class IdSuggestion:
             "vue_tag": self.vue_tag,
             "data_test_value": self.data_test_value,
             "attr_source": self.attr_source,
-            "id_to_add": self.data_test_value,
+            "generated_id": self.generated_id,
+            "id_to_add": self.generated_id,       # geriye donuk uyumluluk
             "id_attr": self.id_attr,
             "is_dynamic": self.is_dynamic,
+            "is_multi_instance": self.is_multi_instance,
             "original_snippet": self.original_snippet,
             "robot_updates": [u.to_dict() for u in self.robot_updates],
         }
@@ -92,10 +114,10 @@ class IdPatchReport:
         }
 
 
-# ── Ana sınıf ────────────────────────────────────────────────────────────────
+# ── Ana sinif ────────────────────────────────────────────────────────────────
 
 class IdFromDataTestPatcher:
-    # Robot dosyasında data-test tabanlı CSS locatorları eşleştiren pattern'lar
+    # Robot dosyasinda data-test tabanli CSS locatorlari eslestiren pattern'lar
     _DT_PATTERNS = [
         re.compile(r"""css=\[data-test=['"]([^'"]+)['"]\]"""),
         re.compile(r"""css=\[data-testid=['"]([^'"]+)['"]\]"""),
@@ -106,19 +128,34 @@ class IdFromDataTestPatcher:
     def __init__(self, config: AppConfig):
         self.config = config
 
-    # ── Önizleme ────────────────────────────────────────────────
+    # ── ID uretimi ──────────────────────────────────────────────
+
+    @staticmethod
+    def _dt_slug(dt_value: str) -> str:
+        """data-test degerinden CSS-guvenli slug uretir: test__form__inner -> test-form-inner"""
+        slug = re.sub(r'__+', '-', dt_value)           # __ -> -
+        slug = re.sub(r'[^a-zA-Z0-9-]', '-', slug)    # diger ozel karakterler -> -
+        slug = re.sub(r'-+', '-', slug)                # coklu tire -> tek tire
+        return slug.strip('-').lower()
+
+    def _generate_id(self, tag: str, dt_value: str, index: Optional[int] = None) -> str:
+        """Element tag tipi + data-test slugundan benzersiz id uretir."""
+        prefix = TAG_PREFIX.get(tag.lower(), tag.lower()[:4])
+        slug = self._dt_slug(dt_value)
+        base = f"{prefix}-{slug}"
+        return f"{base}-{index}" if index is not None else base
+
+    # ── Onizleme ────────────────────────────────────────────────
 
     def preview(self) -> IdPatchReport:
         report = IdPatchReport()
 
-        # Vue dosyalarını tara
+        # Vue dosyalarini tara
         scanner = VueScanner(self.config)
         vue_elements = scanner.scan()
 
         # data-test olan ama id olmayan elementleri topla
-        # data_test_value → IdSuggestion indexi (robot update eşleştirmek için)
-        by_dt_value: dict[str, IdSuggestion] = {}
-
+        candidates = []
         for el in vue_elements:
             if el.element_id:
                 continue  # zaten id var
@@ -135,6 +172,23 @@ class IdFromDataTestPatcher:
             if not dt_value:
                 continue
 
+            candidates.append((el, dt_value, attr_source))
+
+        # data-test degerine gore grupla -> coklu kullanim tespiti
+        dt_counts = Counter(dt_value for _, dt_value, _ in candidates)
+        dt_indices: dict[str, int] = {}   # data-test value -> sonraki index
+        by_dt_value: dict[str, IdSuggestion] = {}  # sadece tekil elementler
+
+        for el, dt_value, attr_source in candidates:
+            is_multi = dt_counts[dt_value] > 1
+
+            if is_multi:
+                idx = dt_indices.get(dt_value, 1)
+                dt_indices[dt_value] = idx + 1
+                generated_id = self._generate_id(el.tag, dt_value, idx)
+            else:
+                generated_id = self._generate_id(el.tag, dt_value)
+
             snippet = self._get_snippet(el.file, el.line)
             sug = IdSuggestion(
                 vue_file=el.file,
@@ -142,20 +196,28 @@ class IdFromDataTestPatcher:
                 vue_tag=el.tag,
                 data_test_value=dt_value,
                 attr_source=attr_source,
+                generated_id=generated_id,
                 original_snippet=snippet,
                 is_dynamic=el.is_dynamic_binding,
+                is_multi_instance=is_multi,
             )
             report.suggestions.append(sug)
-            # Aynı data-test değeri birden fazla elementte olabilir → liste ile tut
-            by_dt_value.setdefault(dt_value, sug)
 
-        # Robot dosyalarında eşleşen locatorları bul
+            # Robot eslestirmesi yalnizca tekil elementler icin (coklu -> hangi index belirsiz)
+            if not is_multi:
+                by_dt_value[dt_value] = sug
+
+        # Robot dosyalarinda eslesen locatorlari bul
         robot_errors = self.config.validate_robot()
         if not robot_errors and by_dt_value:
             self._find_robot_updates(by_dt_value, report)
 
+        unique_count = sum(1 for s in report.suggestions if not s.is_multi_instance)
+        multi_count = len(report.suggestions) - unique_count
         report.stats = {
             "total_suggestions": len(report.suggestions),
+            "unique_elements": unique_count,
+            "multi_instance_elements": multi_count,
             "vue_files": len({s.vue_file for s in report.suggestions}),
             "robot_updates": sum(len(s.robot_updates) for s in report.suggestions),
             "robot_available": not bool(robot_errors),
@@ -163,9 +225,7 @@ class IdFromDataTestPatcher:
         return report
 
     def _find_robot_updates(self, by_dt_value: dict, report: IdPatchReport):
-        """Robot dosyalarını tara, data-test tabanlı locatorları bul ve eşleştir."""
-        extractor = LocatorExtractor(self.config)
-
+        """Robot dosyalarini tara, data-test tabanli locatorlari bul ve eslesir."""
         robot_path = self.config.robot_path
         if not robot_path or not robot_path.exists():
             return
@@ -190,11 +250,11 @@ class IdFromDataTestPatcher:
                         continue
                     dt_value = m.group(1)
                     old_locator = m.group(0)
-                    new_locator = f"id={dt_value}"
 
                     if dt_value in by_dt_value:
                         sug = by_dt_value[dt_value]
-                        # Aynı robot satırı iki kez eklenmesin
+                        new_locator = f"css=#{sug.generated_id}"
+                        # Ayni robot satiri iki kez eklenmesin
                         already = any(
                             u.robot_file == str(robot_file) and u.robot_line == line_num
                             for u in sug.robot_updates
@@ -206,7 +266,7 @@ class IdFromDataTestPatcher:
                                 old_value=old_locator,
                                 new_value=new_locator,
                             ))
-                    break  # bir satırda bir eşleşme yeterli
+                    break  # bir satirda bir esleme yeterli
 
     # ── Uygulama ────────────────────────────────────────────────
 
@@ -229,7 +289,7 @@ class IdFromDataTestPatcher:
 
         applied_vue, applied_robot, failed = [], [], []
 
-        # Vue dosyalarına id yaz (satır numarasına göre ters sırada → üstten ekleme kayması yok)
+        # Vue dosyalarina id yaz (satir numarasina gore ters sirada -> usttten ekleme kaymasi yok)
         by_file: dict[str, list[IdSuggestion]] = defaultdict(list)
         for sug in suggestions:
             by_file[sug.vue_file].append(sug)
@@ -239,7 +299,7 @@ class IdFromDataTestPatcher:
             applied_vue.extend(result["applied"])
             failed.extend(result["failed"])
 
-        # Robot dosyalarını güncelle
+        # Robot dosyalarini guncelle
         if apply_robot:
             robot_updates_all: list[RobotUpdate] = []
             for sug in suggestions:
@@ -256,7 +316,7 @@ class IdFromDataTestPatcher:
             "failed": failed,
         }
 
-    # ── Vue dosyasına id yaz ─────────────────────────────────────
+    # ── Vue dosyasina id yaz ─────────────────────────────────────
 
     def _patch_vue_file(self, file_path: str, sugs: list[IdSuggestion]) -> dict:
         try:
@@ -276,7 +336,7 @@ class IdFromDataTestPatcher:
                 continue  # zaten id var
 
             new_content, ok = self._insert_attr(
-                content, sug.vue_line, sug.vue_tag, sug.id_attr, sug.data_test_value
+                content, sug.vue_line, sug.vue_tag, sug.id_attr, sug.generated_id
             )
             if ok:
                 content = new_content
@@ -284,13 +344,13 @@ class IdFromDataTestPatcher:
                     "file": Path(file_path).name,
                     "line": sug.vue_line,
                     "tag": sug.vue_tag,
-                    "added": f'id="{sug.data_test_value}"',
+                    "added": f'id="{sug.generated_id}"',
                 })
             else:
                 failed.append({
                     "file": Path(file_path).name,
                     "line": sug.vue_line,
-                    "error": "Tag konumlanamadı veya id zaten mevcut",
+                    "error": "Tag konumlanamadi veya id zaten mevcut",
                 })
 
         if applied:
@@ -302,10 +362,10 @@ class IdFromDataTestPatcher:
 
         return {"applied": applied, "failed": failed}
 
-    # ── Robot dosyasına locator yaz ──────────────────────────────
+    # ── Robot dosyasina locator yaz ──────────────────────────────
 
     def _patch_robot_files(self, updates: list[RobotUpdate]) -> dict:
-        """Robot dosyalarındaki css=[data-test='X'] → id=X ile değiştir."""
+        """Robot dosyalarindaki data-test locatorlarini css=#id ile degistir."""
         by_file: dict[str, list[RobotUpdate]] = defaultdict(list)
         for u in updates:
             by_file[u.robot_file].append(u)
@@ -344,7 +404,7 @@ class IdFromDataTestPatcher:
 
         return {"applied": applied, "failed": failed}
 
-    # ── Attribute ekleme (VuePatcher ile aynı mantık) ────────────
+    # ── Attribute ekleme (VuePatcher ile ayni mantik) ────────────
 
     def _insert_attr(
         self, content: str, line: int, tag: str, attr_name: str, attr_value: str
