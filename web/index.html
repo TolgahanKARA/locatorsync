@@ -1776,6 +1776,8 @@
         : `⚠ ${selectedIndices.length} Vue elementine id eklenecek${applyRobot ? ' ve Robot locatorları güncellenecek' : ''}. Devam etmek istediğinizden emin misiniz?`;
       const ok = await this.confirm(dryRun ? 'Dry-Run' : 'Uygula', confirmMsg);
       if (!ok) return;
+      document.getElementById('id-patch-result').innerHTML =
+        `<div class="text-center py-4"><span class="spinner-dark"></span> ${dryRun ? 'Simüle ediliyor...' : 'Uygulanıyor...'}</div>`;
       const r = await fetch(`/api/projects/${this.activeProject}/id-patch/apply`, {
         method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ dry_run: dryRun, apply_robot: applyRobot, selected_indices: selectedIndices }),
@@ -1861,7 +1863,7 @@
           </div>
         </div>
         ${applyHtml}
-        ${sugs.length === 0 ? '<div class="alert alert-success">✓ Tüm data-test elementlerinde zaten id mevcut.</div>' : `
+        ${sugs.length === 0 ? `<div class="alert alert-success">✓ ${showApplyResult && applyResult && !applyResult.dry_run ? 'Güncelleme tamamlandı — güncellenecek başka element kalmadı.' : 'Tüm data-test elementlerinde zaten id mevcut.'}</div>` : `
         <div class="card">
           <div class="card-header d-flex align-items-center justify-content-between" style="padding:10px 16px;">
             <span style="font-weight:600;font-size:0.875rem;">id Ekleme Önerileri (${sugs.length})</span>

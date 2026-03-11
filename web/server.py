@@ -736,9 +736,15 @@ async def id_patch_apply(name: str, body: IdPatchApplyBody):
                     idx_set = set(body.selected_indices)
                     sugs = [s for i, s in enumerate(sugs) if i in idx_set]
                 result = patcher.apply(sugs, dry_run=body.dry_run, apply_robot=body.apply_robot)
+                # Dry-run değilse dosyalar güncellendi → güncel listeyi döndür
+                if not body.dry_run:
+                    updated_report = patcher.preview()
+                    report_dict = updated_report.to_dict()
+                else:
+                    report_dict = report.to_dict()
                 return {
                     "ok": True,
-                    "data": {**report.to_dict(), "apply_result": result, "dry_run": body.dry_run},
+                    "data": {**report_dict, "apply_result": result, "dry_run": body.dry_run},
                     "duration": round(time.time() - t0, 2),
                 }
         except ValueError as e:
