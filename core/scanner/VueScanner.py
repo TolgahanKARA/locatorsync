@@ -72,7 +72,7 @@ class VueScanner:
             tag = match.group(1).lower()
             attrs_str = match.group(2)
             line_offset = template[: match.start()].count("\n")
-            line = base_line + line_offset + 1
+            line = base_line + line_offset
             attrs = self._parse_attributes(attrs_str)
             inner_text = self._extract_inner_text(template, match.end(), tag)
             # Hem statik (data-test) hem dynamic (:data-test) binding desteklenir
