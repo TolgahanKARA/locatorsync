@@ -1829,7 +1829,10 @@
           ${applyResult.dry_run ? '⏳ Dry-run tamamlandı —' : '✓ Uygulama tamamlandı —'}
           <strong>${vApplied.length}</strong> Vue elementi güncellendi,
           <strong>${rApplied.length}</strong> Robot locator değiştirildi.
-          ${failed.length ? `<br><span style="color:var(--pc-danger);">⚠ ${failed.length} hata</span>` : ''}
+          ${failed.length ? `<br><span style="color:var(--pc-danger);">⚠ ${failed.length} hata:</span>
+            <ul style="margin:4px 0 0 16px;font-size:0.75rem;">
+              ${failed.map(f => `<li>${f.file || ''}${f.line ? ':'+f.line : ''} — ${f.error || JSON.stringify(f)}</li>`).join('')}
+            </ul>` : ''}
           ${vuePath}
         </div>`;
       }
