@@ -744,7 +744,8 @@ async def id_patch_apply(name: str, body: IdPatchApplyBody):
                     report_dict = report.to_dict()
                 return {
                     "ok": True,
-                    "data": {**report_dict, "apply_result": result, "dry_run": body.dry_run},
+                    "data": {**report_dict, "apply_result": result, "dry_run": body.dry_run,
+                             "vue_path_used": str(cfg.vue_path)},
                     "duration": round(time.time() - t0, 2),
                 }
         except ValueError as e:

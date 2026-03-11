@@ -1824,11 +1824,13 @@
         const vApplied = applyResult.applied_vue || [];
         const rApplied = applyResult.applied_robot || [];
         const failed = applyResult.failed || [];
+        const vuePath = d.vue_path_used ? `<br><small style="opacity:0.75;">Vue yolu: <code>${d.vue_path_used}</code></small>` : '';
         applyHtml = `<div class="alert ${applyResult.dry_run ? 'alert-info' : 'alert-success'} mt-3">
           ${applyResult.dry_run ? '⏳ Dry-run tamamlandı —' : '✓ Uygulama tamamlandı —'}
           <strong>${vApplied.length}</strong> Vue elementi güncellendi,
           <strong>${rApplied.length}</strong> Robot locator değiştirildi.
           ${failed.length ? `<br><span style="color:var(--pc-danger);">⚠ ${failed.length} hata</span>` : ''}
+          ${vuePath}
         </div>`;
       }
 
