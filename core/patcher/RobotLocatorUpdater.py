@@ -112,6 +112,7 @@ class RobotLocatorUpdater:
             "total_changes": len(report.changes),
             "robot_files": by_file,
             "vue_elements_with_id": len(dt_to_id),
+            "vue_elements_with_dt": len(dt_to_id),
             "skipped_non_unique": skipped_non_unique,        # coklu element, ayni data-test
             "robot_available": not bool(robot_errors),
             # Debug: ilk 10 statik eslemeyi goster
@@ -120,30 +121,34 @@ class RobotLocatorUpdater:
         return report
 
     def _build_dt_to_id_map(self) -> tuple[dict[str, str], list[str]]:
-        """Vue'dan hem data-test hem id olan elementlerin haritasi: {data_test_value: id_value}
+        """Vue'dan data-test olan elementlerin haritasi: {data_test_value: id_value}
+        - id varsa kullanir; yoksa data-test degerini id olarak kullanir (slug).
         - Yalnizca statik binding — dinamik (:data-test="expr") elementler haric tutulur.
-        - Ayni data-test degerine sahip birden fazla element varsa (non-unique) atlanir;
-          hangi elementin hangi Robot locatora karsalik geldigi bilinemez.
+        - Ayni data-test degerine sahip birden fazla farkli id varsa (non-unique) atlanir.
         Returns: (dt_to_id, skipped_non_unique_list)"""
         scanner = VueScanner(self.config)
         elements = scanner.scan()
 
-        # data-test degerine gore grupla (id olan statik elementler)
+        # data-test degerine gore grupla
         dt_groups: dict[str, list[str]] = {}
         for el in elements:
-            if not el.element_id or el.is_dynamic_binding:
+            if el.is_dynamic_binding:
                 continue
             dt_value = el.data_test or el.data_testid
-            if dt_value:
-                dt_groups.setdefault(dt_value, []).append(el.element_id)
+            if not dt_value:
+                continue
+            # id varsa kullan, yoksa data-test degerini dogrudan id olarak kullan
+            id_value = el.element_id if el.element_id else dt_value
+            dt_groups.setdefault(dt_value, []).append(id_value)
 
         dt_to_id: dict[str, str] = {}
         skipped_non_unique: list[str] = []
         for dt_value, ids in dt_groups.items():
-            if len(ids) == 1:
-                dt_to_id[dt_value] = ids[0]
+            unique_ids = list(dict.fromkeys(ids))  # siralamayi koru, tekrarlari kaldir
+            if len(unique_ids) == 1:
+                dt_to_id[dt_value] = unique_ids[0]
             else:
-                # Birden fazla element ayni data-test'i paylasiyor -> otomatik donusurum guvenli degil
+                # Birden fazla farkli id degeri -> otomatik donusum guvenli degil
                 skipped_non_unique.append(dt_value)
 
         return dt_to_id, skipped_non_unique

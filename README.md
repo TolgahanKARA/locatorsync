@@ -181,10 +181,9 @@ Arayüz Sigortam.net marka kimliği esas alınarak tasarlanmıştır:
 - **Favicon & Marka:** Shield SVG ikonu (turuncu gradient zemin, beyaz stroke) + "LocatorSync" logosu
 - **Sidebar ikonlar:** Feather tarzı inline SVG'ler; turuncu renk, aktif durum glow efekti
 - **Sidebar:** Navigasyon, proje listesi (ekle / düzenle / **her satırda sil butonu**) ve son raporlar
-- **Data-Test Audit:** Kapsama raporu, eksik elementler ve önerilen data-test adları
-- **Vue Analizi:** Stabilite dağılımı, en kırılgan 10 element
-- **Çapraz Analiz:** Kırık ve riskli locator tabloları, kırılma/risk oranları
-- **Heal:** Düzeltme önerileri, Dry-Run ve canlı patch uygulama (onay diyaloğu ile)
+- **Vue Analizi:** Stabilite dağılımı, en kırılgan 10 element; `data-test` var ama `id` eksik elementler ("ID Eksik" stat kartı ve ayrı tablo) — hangi elementlere ID eklenmesi gerektiğini listeler
+- **Çapraz Analiz:** Vue ve Robot projelerini tarayarak kırık/riskli locator tabloları, kırılma/risk oranları; ID tabanlı locator yaklaşımı önerilir
+- **Heal:** Kırık/riskli locator'lar için ID tabanlı öneri motoru — üç mod: `add_id` (data-test var, id eksik → id üret), `id_exists` (id zaten mevcut → Robot'u güncelle), `no_match` (Vue'da eşleşme yok → manuel inceleme). Her satırda **[Değiştir]** butonu (Vue'ya id ekle + Robot locator güncelle), **[Tümünü Uygula Dry-Run]** ve **[Tümünü Uygula]** toplu işlem butonları. Loading spinner tüm butonlarda gösterilir.
 - **Vue Fark Analizi:** Eski/yeni Vue karşılaştırması, etkilenen Robot locator'ları
 - **data-test Ekle:** Vue dosyalarına otomatik `data-test` ekler — Önizle → satır satır seçim (checkbox) → Dry-Run → Seçilileri Uygula akışı
 - **ID Ekle:** Vue'da `data-test`/`:data-test` olan ama `id` olmayan elementlere aynı değerde `id` ekler. Dynamic binding (`:data-test="getAttributeName(...)"`) desteklenir — bu durumda `:id="..."` yazılır. Robot'taki `css=[data-test='X']` locatorları otomatik `id=X` ile değiştirilir. **Önemli:** Bu sekme yalnızca projenin güncel (yeni) Vue yolunu tarar ve günceller; eski Vue yolu yalnızca "Vue Fark Analizi" için kullanılır (sekmede bilgi notu olarak da gösterilir). "Seçilileri Uygula" sırasında loading spinner gösterilir; uygulama sonrası liste otomatik yenilenir ve güncellenecek element kalmadıysa bilgi mesajı çıkar. Apply sonucu mesajında değişikliklerin yazıldığı Vue klasör yolu gösterilir — yanlış klasöre yazılıyorsa proje ayarlarından Vue yolu düzeltilmeli. Hata oluşan öğeler için dosya adı, satır ve hata açıklaması liste halinde gösterilir. **Bug fix:** VueScanner satır numarası hesaplamasındaki off-by-one hatası düzeltildi (`line = base_line + line_offset`) — patcher artık doğru satırı buluyor.
@@ -270,7 +269,21 @@ Robot Framework locator arama sırası: **ID → ClassName → Name → TagName 
 
 ---
 
-## Heal Güven Seviyeleri
+## Heal — ID Tabanlı Öneri Akışı
+
+Heal sekmesi kırık/riskli locator'ları Vue elementleriyle eşleştirerek **ID merkezli** çözüm önerir:
+
+| Mod | Koşul | İşlem |
+|-----|-------|-------|
+| `add_id` | `data-test` var, `id` eksik | Vue'ya `id` ekle (data-test değerinden türetilir), Robot locator'ı `id=X` yap |
+| `id_exists` | Element zaten `id` sahibi | Sadece Robot locator'ını `id=X` ile güncelle |
+| `no_match` | Vue'da eşleşme yok | Manuel inceleme gerekir (patch uygulanamaz) |
+
+- **[Değiştir]**: Sadece o satır için Vue id + Robot locator değişikliğini uygular
+- **[Tümünü Uygula]**: `add_id` ve `id_exists` modundaki tüm önerileri toplu uygular
+- **Dry-Run**: Dosyaları değiştirmeden önizleme yapar
+
+## Heal Güven Seviyeleri (Eski Akış)
 
 | Güven | Açıklama | Otomatik Patch? |
 |-------|----------|-----------------|
@@ -291,8 +304,9 @@ GET    /api/projects/{name}/validate    Yol doğrulama
 POST   /api/projects/{name}/audit       data-test denetimi
 POST   /api/projects/{name}/vue-only    Vue stabilite analizi
 POST   /api/projects/{name}/analyze     Çapraz analiz
-POST   /api/projects/{name}/heal        Heal önerileri
-POST   /api/projects/{name}/heal/apply       Patch uygula
+POST   /api/projects/{name}/heal             Heal önerileri (ID tabanlı, enriched)
+POST   /api/projects/{name}/heal/apply       Patch uygula (eski akış)
+POST   /api/projects/{name}/heal/apply-id    Vue'ya id ekle + Robot locator güncelle
 POST   /api/projects/{name}/diff             Vue eski/yeni snapshot karşılaştırması
 POST   /api/projects/{name}/patch-vue        data-test eksiklerini önizle (dosya değişmez)
 POST   /api/projects/{name}/patch-vue/apply  data-test attribute'larını Vue dosyalarına yaz
