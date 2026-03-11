@@ -29,6 +29,7 @@ from core.analyzer.VueDiffAnalyzer import VueDiffAnalyzer
 from core.healer.HealerEngine import HealerEngine
 from core.patcher.VuePatcher import VuePatcher
 from core.patcher.IdFromDataTestPatcher import IdFromDataTestPatcher
+from core.patcher.RobotLocatorUpdater import RobotLocatorUpdater
 from services.ReportService import ReportService
 
 
@@ -746,6 +747,87 @@ async def id_patch_apply(name: str, body: IdPatchApplyBody):
                     "ok": True,
                     "data": {**report_dict, "apply_result": result, "dry_run": body.dry_run,
                              "vue_path_used": str(cfg.vue_path)},
+                    "duration": round(time.time() - t0, 2),
+                }
+        except ValueError as e:
+            return {"ok": False, "errors": [str(e)]}
+
+    async with _analysis_lock:
+        return await asyncio.to_thread(_blocking)
+
+
+# ─── Robot Locator Güncelle ──────────────────────────────────────
+
+class RobotUpdateApplyBody(BaseModel):
+    dry_run: bool = True
+    selected_indices: list[int] = []
+
+
+@app.post("/api/projects/{name}/robot-update")
+async def robot_update_preview(name: str):
+    """Vue'da id olan elementlerin Robot locatorlarini onizle (dosya degismez)."""
+    if _analysis_lock.locked():
+        return {"ok": False, "errors": ["Baska bir analiz devam ediyor. Lutfen bekleyin."], "busy": True}
+    p = get_project_data(name)
+
+    def _blocking():
+        try:
+            with resolve_paths(p) as (vue_path, _, robot_path):
+                cfg = build_config(vue_path, "", robot_path, p)
+                errors = cfg.validate()
+                if errors:
+                    return {"ok": False, "errors": errors}
+                t0 = time.time()
+                updater = RobotLocatorUpdater(cfg)
+                report = updater.preview()
+                return {
+                    "ok": True,
+                    "data": report.to_dict(),
+                    "duration": round(time.time() - t0, 2),
+                }
+        except ValueError as e:
+            return {"ok": False, "errors": [str(e)]}
+
+    return await asyncio.to_thread(_blocking)
+
+
+@app.post("/api/projects/{name}/robot-update/apply")
+async def robot_update_apply(name: str, body: RobotUpdateApplyBody):
+    """Robot locatorlarini id ile guncelle."""
+    if _analysis_lock.locked():
+        return {"ok": False, "errors": ["Baska bir analiz devam ediyor. Lutfen bekleyin."], "busy": True}
+    p = get_project_data(name)
+
+    if not body.dry_run and p.get("robot_source", "local") == "git":
+        return {
+            "ok": False,
+            "errors": ["Git'ten cekilen Robot projesine yazma yapilamaz."],
+        }
+
+    def _blocking():
+        try:
+            with resolve_paths(p) as (vue_path, _, robot_path):
+                cfg = build_config(vue_path, "", robot_path, p)
+                errors = cfg.validate()
+                if errors:
+                    return {"ok": False, "errors": errors}
+                t0 = time.time()
+                updater = RobotLocatorUpdater(cfg)
+                report = updater.preview()
+                changes = report.changes
+                if body.selected_indices:
+                    idx_set = set(body.selected_indices)
+                    changes = [c for i, c in enumerate(changes) if i in idx_set]
+                result = updater.apply(changes, dry_run=body.dry_run)
+                # Dry-run degil → guncel listeyi don
+                if not body.dry_run:
+                    updated = updater.preview()
+                    report_dict = updated.to_dict()
+                else:
+                    report_dict = report.to_dict()
+                return {
+                    "ok": True,
+                    "data": {**report_dict, "apply_result": result},
                     "duration": round(time.time() - t0, 2),
                 }
         except ValueError as e:
