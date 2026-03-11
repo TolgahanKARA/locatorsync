@@ -267,6 +267,14 @@ Robot Framework locator arama sırası: **ID → ClassName → Name → TagName 
 - Zaten `data-test` olan elementler atlanır
 - Yüksek satır numarasından aşağı doğru işlenir (satır kayması önlenir)
 
+### VueScanner Bilinen Buglar (Düzeltildi)
+
+| Bug | Neden | Düzeltme |
+|-----|-------|---------|
+| `data-test` 0 çıkıyordu | Tag regex `[^>]*?` — `:class="count > 0"` gibi ifadelerde `>` tag sonu sanılıyordu, `data-test` görülmüyordu | `((?:[^>"']|"[^"]*"|'[^']*')*)` — quoted string içindeki `>` atlanır |
+| Satır numarası off-by-one | `base_line + line_offset + 1` — fazladan `+1` patcher'ın yanlış satıra bakmasına neden oluyordu | `base_line + line_offset` |
+| `data-test` None dönüyordu | `lstrip("v-bind:")` yanlış şerit | `startswith("v-bind:")` + slice |
+
 ---
 
 ## Heal — ID Tabanlı Öneri Akışı
