@@ -60,13 +60,36 @@ class LocatorExtractor:
             loc.stability_score = score
             loc.stability_category = cat
 
+        # CSS ve XPath locator'larını öne al (aynı dosya sırası korunarak)
+        def _css_xpath_first(loc):
+            v = loc.value.strip()
+            is_priority = (
+                loc.locator_type in ("css", "xpath")
+                or v.startswith("//")
+                or v.startswith("(//")
+            )
+            return 0 if is_priority else 1
+
+        result.locators.sort(key=_css_xpath_first)
         return result
 
     def _find_files(self, root: Path, ext: str):
         ignore = set(self.config.ignore_dirs)
-        for path in root.rglob(f"*{ext}"):
-            if not any(part in ignore for part in path.parts):
-                yield path
+        priority = [p.lower() for p in (self.config.priority_folders or [])]
+
+        def _priority_key(path: Path) -> int:
+            parts = [p.lower() for p in path.parts]
+            for i, folder in enumerate(priority):
+                if any(part == folder or part.startswith(folder) for part in parts):
+                    return i
+            return len(priority)
+
+        files = [
+            p for p in root.rglob(f"*{ext}")
+            if not any(part in ignore for part in p.parts)
+        ]
+        files.sort(key=_priority_key)
+        yield from files
 
     def _extract_from_file(self, file_path: Path) -> list[RobotLocator]:
         locators = []

@@ -156,6 +156,7 @@ def build_config(vue_path: str, vue_old_path: str, robot_path: str, p: dict) -> 
             "save_json": True,
         },
         "ignore_locators": p.get("ignore_locators", []),
+        "priority_folders": p.get("priority_folders", []),
     })
 
 
@@ -201,6 +202,8 @@ class ProjectBody(BaseModel):
     critical_threshold: int = 30
     ignore_locators: List[str] = []
     output_dir: str = "reports"
+    # Tarama önceliği (opsiyonel)
+    priority_folders: List[str] = []
     # Slack entegrasyonu (opsiyonel)
     slack_webhook: str = ""
 

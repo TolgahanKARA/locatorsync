@@ -18,6 +18,7 @@ class AppConfig:
             "robot_extensions": [".robot", ".resource", ".txt"],
             "ignore_dirs": ["node_modules", ".git", "dist", "build", "__pycache__", "venv"],
         },
+        "priority_folders": [],
         "healing": {
             "backup_before_patch": True,
             "auto_apply_high_confidence": False,
@@ -107,6 +108,10 @@ class AppConfig:
     @property
     def ignore_locators(self) -> list:
         return self.get("ignore_locators", default=[])
+
+    @property
+    def priority_folders(self) -> list:
+        return self.get("priority_folders", default=[])
 
     @property
     def output_dir(self) -> Path:

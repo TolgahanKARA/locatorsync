@@ -293,6 +293,11 @@
     .table th { font-weight: 600; color: #495057; background: #f8f9fa; border-bottom: 1px solid #dee2e6; }
     .table td { color: #293240; vertical-align: middle; }
     .table tbody tr:hover td { background: #f8f9fa; }
+    /* Sticky header: table-responsive'e max-height vererek thead sticky olur */
+    .table-responsive { max-height: 420px; overflow-y: auto; }
+    .table-responsive thead th { position: sticky; top: 0; z-index: 2; background: #f8f9fa; box-shadow: 0 1px 0 #dee2e6; }
+    /* CSS/XPath locator vurgusu */
+    .loc-priority { font-weight: 600; color: #7267EF; }
 
     /* ── Code spans ── */
     .code {
@@ -854,6 +859,17 @@
         </div>
       </div>
 
+      <!-- Tarama Önceliği -->
+      <div class="source-group" style="margin-top:16px;">
+        <div class="source-section-label">
+          <span><span class="material-icons" style="font-size:15px;vertical-align:middle;margin-right:4px;color:#3ec9d6;">sort</span>Tarama Önceliği</span>
+          <span style="font-size:0.7rem;color:#adb5bd;">Opsiyonel</span>
+        </div>
+        <input type="text" id="modal-priority-folders" class="form-control-custom"
+          placeholder="po, app, test, object" />
+        <div class="form-text-custom">Önce taranacak Robot klasörleri (virgülle ayır, sıra önemli). CSS ve XPath locator'ları öne alınır.</div>
+      </div>
+
       <!-- Eşikler -->
       <div class="source-group">
         <div class="source-section-label" style="margin-bottom:10px;">
@@ -1087,6 +1103,7 @@
           document.getElementById('modal-robot-git-branch').value  = p.robot_git_branch || 'main';
           document.getElementById('modal-robot-git-subdir').value  = p.robot_git_subdir || '';
 
+          document.getElementById('modal-priority-folders').value = (p.priority_folders || []).join(', ');
           document.getElementById('modal-stability').value    = p.stability_threshold || 50;
           document.getElementById('modal-critical').value      = p.critical_threshold  || 30;
           document.getElementById('modal-slack-webhook').value = p.slack_webhook || '';
@@ -1101,6 +1118,7 @@
         ].forEach(id => { document.getElementById(id).value = ''; });
         document.getElementById('modal-vue-git-branch').value   = 'main';
         document.getElementById('modal-robot-git-branch').value = 'main';
+        document.getElementById('modal-priority-folders').value = '';
         document.getElementById('modal-stability').value = 50;
         document.getElementById('modal-critical').value  = 30;
       }
@@ -1182,6 +1200,8 @@
         robot_git_url:      document.getElementById('modal-robot-git-url').value.trim(),
         robot_git_branch:   document.getElementById('modal-robot-git-branch').value.trim() || 'main',
         robot_git_subdir:   document.getElementById('modal-robot-git-subdir').value.trim(),
+        priority_folders: document.getElementById('modal-priority-folders').value
+          .split(',').map(s => s.trim()).filter(Boolean),
         stability_threshold: parseInt(document.getElementById('modal-stability').value),
         critical_threshold:  parseInt(document.getElementById('modal-critical').value),
         ignore_locators: [],
@@ -1454,16 +1474,16 @@
       const s = d.summary;
       const si = d.scan_info;
 
-      const brokenRows = d.broken_locators.map(l => `<tr>
-        <td style="font-size:0.75rem;color:#6c757d;">${this.shortPath(l.file)}:${l.line}</td>
-        <td><span class="code" style="color:var(--pc-danger);font-size:0.75rem;">${l.value}</span></td>
+      const brokenRows = d.broken_locators.map(l => `<tr${this.isPriority(l) ? ' class="table-active"' : ''}>
+        <td style="font-size:0.75rem;color:#6c757d;">${this.shortPath(l.file)}:${l.line}${this.folderBadge(l.file)}</td>
+        <td><span class="code ${this.isPriority(l)?'loc-priority':''}" style="color:var(--pc-danger);font-size:0.75rem;">${l.value}</span></td>
         <td style="font-size:0.75rem;">${l.type}</td>
         <td style="font-size:0.75rem;color:var(--pc-danger);">${l.break_reason || '—'}</td>
       </tr>`).join('');
 
-      const riskyRows = d.risky_locators.map(l => `<tr>
-        <td style="font-size:0.75rem;color:#6c757d;">${this.shortPath(l.file)}:${l.line}</td>
-        <td><span class="code" style="color:var(--pc-warning);font-size:0.75rem;">${l.value}</span></td>
+      const riskyRows = d.risky_locators.map(l => `<tr${this.isPriority(l) ? ' class="table-active"' : ''}>
+        <td style="font-size:0.75rem;color:#6c757d;">${this.shortPath(l.file)}:${l.line}${this.folderBadge(l.file)}</td>
+        <td><span class="code ${this.isPriority(l)?'loc-priority':''}" style="color:var(--pc-warning);font-size:0.75rem;">${l.value}</span></td>
         <td style="font-size:0.75rem;">${l.type}</td>
         <td><span class="fw-semibold ${this.scoreClass(l.stability_score)}">${l.stability_score}</span></td>
         <td style="font-size:0.75rem;">${l.stability_label}</td>
@@ -1980,6 +2000,29 @@
           <div class="dist-bar" style="width:${pct}%;background:${color};"></div>
         </div>
       </div>`;
+    },
+
+    /* Dosya yolundan klasör tipi etiketi döndür (PO/App/Test/Object) */
+    folderBadge(filePath) {
+      if (!filePath) return '';
+      const p = filePath.toLowerCase().replace(/\\/g, '/');
+      const parts = p.split('/');
+      const colors = { po:'#7267EF', app:'#3ec9d6', test:'#17C666', object:'#ffa21d' };
+      const labels = { po:'PO', app:'App', test:'Test', object:'Obj' };
+      for (const [key, color] of Object.entries(colors)) {
+        if (parts.some(part => part === key || part.startsWith(key + '_') || part.endsWith('_' + key)
+          || part.includes('page_object') || (key==='po' && part.includes('pageobject')))) {
+          return ` <span style="font-size:0.65rem;background:${color}22;color:${color};border-radius:3px;padding:1px 4px;font-weight:600;">${labels[key]}</span>`;
+        }
+      }
+      return '';
+    },
+
+    /* CSS veya XPath locator'ı ise öncelikli göster */
+    isPriority(l) {
+      const t = (l.type || l.locator_type || '').toLowerCase();
+      const v = (l.value || '').trim();
+      return t === 'css' || t === 'xpath' || v.startsWith('//') || v.startsWith('(//');
     },
 
     scoreClass(s) {
