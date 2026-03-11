@@ -582,6 +582,12 @@
           <span>data-test Ekle</span>
         </button>
       </li>
+      <li class="pc-item">
+        <button class="pc-link" data-tab="id-patch" onclick="App.switchTab('id-patch')">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 12H16M12 8V16" stroke-width="2" stroke-linecap="round"/></svg>
+          <span>ID Ekle</span>
+        </button>
+      </li>
 
       <li><div class="sidebar-divider"></div></li>
 
@@ -727,6 +733,30 @@
         </div>
       </div>
       <div id="patch-vue-result"></div>
+    </div>
+
+    <!-- ── ID PATCH TAB ── -->
+    <div id="tab-id-patch" class="tab-content-panel">
+      <div class="page-header">
+        <div class="d-flex align-items-start justify-content-between">
+          <div>
+            <h5>ID Ekle</h5>
+            <p>
+              Vue'da <code class="code">data-test</code> olan ama <code class="code">id</code> olmayan elementlere
+              aynı değerde <code class="code">id</code> ekler. Robot'taki
+              <code class="code">css=[data-test='X']</code> locatorlarını otomatik olarak <code class="code">id=X</code> ile değiştirir.
+            </p>
+            <p style="font-size:0.72rem;color:#adb5bd;margin-top:2px;">
+              Önce "Önizle" ile neyin değişeceğini görün, satır satır seçin, sonra "Seçilileri Uygula" ile dosyalara yazın.
+              Git kaynağı olan projelere yazma yapılamaz.
+            </p>
+          </div>
+          <button class="btn-secondary-custom" onclick="App.runIdPatchPreview()">
+            <span class="material-icons" style="font-size:14px;vertical-align:middle;margin-right:4px;">preview</span>Önizle
+          </button>
+        </div>
+      </div>
+      <div id="id-patch-result"></div>
     </div>
 
     <!-- ── DIFF TAB ── -->
@@ -975,6 +1005,7 @@
     'heal': 'Heal',
     'diff': 'Vue Fark Analizi',
     'patch-vue': 'data-test Ekle',
+    'id-patch': 'ID Ekle',
   };
 
   const App = {
@@ -1048,7 +1079,7 @@
         <div><span style="color:#505a67;">Eşik:</span> <span style="color:#adb5bd;">${project.stability_threshold} / kritik ${project.critical_threshold}</span></div>
       `;
 
-      ['audit-result','vue-only-result','analyze-result','heal-result','diff-result','patch-vue-result'].forEach(id => {
+      ['audit-result','vue-only-result','analyze-result','heal-result','diff-result','patch-vue-result','id-patch-result'].forEach(id => {
         document.getElementById(id).innerHTML = '';
       });
     },
@@ -1704,6 +1735,162 @@
       });
       const data = await r.json();
       this.renderPatchVueResult(data, true);
+    },
+
+    // ── ID Patch ────────────────────────────────────────────────
+    async runIdPatchPreview() {
+      if (!this.requireProject()) return;
+      const el = document.getElementById('id-patch-result');
+      el.innerHTML = this.loadingHtml('Analiz ediliyor...');
+      const r = await fetch(`/api/projects/${this.activeProject}/id-patch`, { method: 'POST' });
+      const data = await r.json();
+      this.renderIdPatchResult(data, false);
+    },
+
+    _getSelectedIdPatchIndices() {
+      return Array.from(document.querySelectorAll('.chk-id-patch:checked'))
+        .map(cb => parseInt(cb.dataset.idx));
+    },
+
+    _updateIdSelectionCount() {
+      const total = document.querySelectorAll('.chk-id-patch').length;
+      const selected = document.querySelectorAll('.chk-id-patch:checked').length;
+      const el = document.getElementById('id-patch-sel-count');
+      if (el) el.textContent = `${selected} / ${total} seçili`;
+    },
+
+    async runIdPatchApply(dryRun) {
+      if (!this.requireProject()) return;
+      const selectedIndices = this._getSelectedIdPatchIndices();
+      if (selectedIndices.length === 0) {
+        this.showToast('Hiç satır seçilmedi.', 'warning'); return;
+      }
+      const applyRobot = document.getElementById('chk-apply-robot')?.checked !== false;
+      const confirmMsg = dryRun
+        ? `Dry-run: ${selectedIndices.length} Vue elementi simüle edilecek.`
+        : `⚠ ${selectedIndices.length} Vue elementine id eklenecek${applyRobot ? ' ve Robot locatorları güncellenecek' : ''}. Devam etmek istediğinizden emin misiniz?`;
+      const ok = await this.confirm(dryRun ? 'Dry-Run' : 'Uygula', confirmMsg);
+      if (!ok) return;
+      const r = await fetch(`/api/projects/${this.activeProject}/id-patch/apply`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ dry_run: dryRun, apply_robot: applyRobot, selected_indices: selectedIndices }),
+      });
+      const data = await r.json();
+      this.renderIdPatchResult(data, true);
+    },
+
+    renderIdPatchResult(res, showApplyResult) {
+      const el = document.getElementById('id-patch-result');
+      if (!res.ok) { el.innerHTML = this.errorHtml(res.errors || [res.error]); return; }
+      const d = res.data;
+      const stats = d.stats || {};
+      const sugs = d.suggestions || [];
+      const applyResult = d.apply_result;
+
+      const rows = sugs.map((s, i) => {
+        const robotUpdates = (s.robot_updates || []).map(u =>
+          `<div style="font-size:0.7rem;color:#6c757d;margin-top:2px;">
+            <span style="color:#adb5bd;">${u.robot_file_name}:${u.robot_line}</span>
+            <span class="code" style="color:var(--pc-danger);margin:0 4px;">${u.old_value}</span>
+            <span style="color:#adb5bd;">→</span>
+            <span class="code" style="color:#17C666;margin-left:4px;">${u.new_value}</span>
+          </div>`
+        ).join('');
+        return `<tr>
+          <td style="width:36px;text-align:center;">
+            <input type="checkbox" class="chk-id-patch" data-idx="${i}" checked onchange="App._updateIdSelectionCount()">
+          </td>
+          <td style="font-size:0.75rem;color:#6c757d;">${s.vue_file_name}:${s.vue_line}</td>
+          <td style="font-size:0.75rem;"><span class="code" style="background:#e8f5e9;color:#2e7d32;">${s.vue_tag}</span></td>
+          <td style="font-size:0.75rem;">
+            <span class="code" style="color:#6c757d;">${s.attr_source}="${s.data_test_value}"</span>
+            <span style="color:#adb5bd;margin:0 4px;">→</span>
+            <span class="code" style="color:#7267EF;font-weight:600;">id="${s.data_test_value}"</span>
+          </td>
+          <td>${robotUpdates || '<span style="color:#adb5bd;font-size:0.72rem;">Robot eşleşmesi yok</span>'}</td>
+        </tr>`;
+      }).join('');
+
+      let applyHtml = '';
+      if (showApplyResult && applyResult) {
+        const vApplied = applyResult.applied_vue || [];
+        const rApplied = applyResult.applied_robot || [];
+        const failed = applyResult.failed || [];
+        applyHtml = `<div class="alert ${applyResult.dry_run ? 'alert-info' : 'alert-success'} mt-3">
+          ${applyResult.dry_run ? '⏳ Dry-run tamamlandı —' : '✓ Uygulama tamamlandı —'}
+          <strong>${vApplied.length}</strong> Vue elementi güncellendi,
+          <strong>${rApplied.length}</strong> Robot locator değiştirildi.
+          ${failed.length ? `<br><span style="color:var(--pc-danger);">⚠ ${failed.length} hata</span>` : ''}
+        </div>`;
+      }
+
+      el.innerHTML = `
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <div class="card text-center">
+              <div class="card-body">
+                <div class="stat-val score-high">${stats.total_suggestions || 0}</div>
+                <div class="stat-label">id Eklenecek Element</div>
+                <div style="font-size:0.72rem;color:#adb5bd;margin-top:4px;">${stats.vue_files || 0} Vue dosyası</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card text-center">
+              <div class="card-body">
+                <div class="stat-val score-medium">${stats.robot_updates || 0}</div>
+                <div class="stat-label">Robot Locator Güncellenecek</div>
+                <div style="font-size:0.72rem;color:#adb5bd;margin-top:4px;">css=[data-test='X'] → id=X</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card text-center">
+              <div class="card-body">
+                <div class="stat-val" style="color:#7267EF;">id</div>
+                <div class="stat-label">Stabil Locator</div>
+                <div style="font-size:0.72rem;color:#adb5bd;margin-top:4px;">RF'de ilk aranır (skor: 85)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        ${applyHtml}
+        ${sugs.length === 0 ? '<div class="alert alert-success">✓ Tüm data-test elementlerinde zaten id mevcut.</div>' : `
+        <div class="card">
+          <div class="card-header d-flex align-items-center justify-content-between" style="padding:10px 16px;">
+            <span style="font-weight:600;font-size:0.875rem;">id Ekleme Önerileri (${sugs.length})</span>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <label style="font-size:0.75rem;color:#6c757d;display:flex;align-items:center;gap:4px;">
+                <input type="checkbox" id="chk-apply-robot" checked> Robot locatorlarını da güncelle
+              </label>
+              <label style="font-size:0.75rem;color:#6c757d;">
+                <input type="checkbox" onchange="document.querySelectorAll('.chk-id-patch').forEach(c=>c.checked=this.checked);App._updateIdSelectionCount();" checked>
+                Tümünü Seç
+              </label>
+              <span id="id-patch-sel-count" style="font-size:0.75rem;color:#495057;">${sugs.length} / ${sugs.length} seçili</span>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead><tr>
+                <th style="width:36px;"></th>
+                <th>Vue Dosya:Satır</th>
+                <th style="width:60px;">Tag</th>
+                <th>Dönüşüm</th>
+                <th>Robot Güncellemesi</th>
+              </tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+          <div class="card-footer" style="padding:10px 16px;display:flex;gap:8px;justify-content:flex-end;">
+            <button onclick="App.runIdPatchApply(true)" class="btn-secondary-custom btn-sm-custom">
+              <span class="material-icons" style="font-size:13px;vertical-align:middle;">visibility</span> Dry-Run
+            </button>
+            <button onclick="App.runIdPatchApply(false)" class="btn-primary-custom btn-sm-custom">
+              <span class="material-icons" style="font-size:13px;vertical-align:middle;">save</span> Seçilileri Uygula
+            </button>
+          </div>
+        </div>`}`;
     },
 
     renderPatchVueResult(res, showApplyResult) {

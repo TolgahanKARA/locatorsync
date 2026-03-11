@@ -28,6 +28,7 @@ from core.analyzer.ChangeMatcher import ChangeMatcher
 from core.analyzer.VueDiffAnalyzer import VueDiffAnalyzer
 from core.healer.HealerEngine import HealerEngine
 from core.patcher.VuePatcher import VuePatcher
+from core.patcher.IdFromDataTestPatcher import IdFromDataTestPatcher
 from services.ReportService import ReportService
 
 
@@ -657,6 +658,87 @@ async def patch_vue_apply(name: str, body: PatchVueBody):
                         "apply_result": result,
                         "dry_run": body.dry_run,
                     },
+                    "duration": round(time.time() - t0, 2),
+                }
+        except ValueError as e:
+            return {"ok": False, "errors": [str(e)]}
+
+    async with _analysis_lock:
+        return await asyncio.to_thread(_blocking)
+
+
+# ─── ID from data-test ───────────────────────────────────────────
+
+class IdPatchApplyBody(BaseModel):
+    dry_run: bool = True
+    apply_robot: bool = True
+    selected_indices: Optional[List[int]] = None
+
+
+@app.post("/api/projects/{name}/id-patch")
+async def id_patch_preview(name: str):
+    """data-test olan ama id olmayan Vue elementlerini tespit et (dosya değişmez)."""
+    if _analysis_lock.locked():
+        return {"ok": False, "errors": ["Baska bir analiz devam ediyor. Lutfen bekleyin."], "busy": True}
+    p = get_project_data(name)
+
+    def _blocking():
+        try:
+            with resolve_paths(p) as (vue_path, _, robot_path):
+                cfg = build_config(vue_path, "", robot_path, p)
+                errors = cfg.validate()
+                if errors:
+                    return {"ok": False, "errors": errors}
+                t0 = time.time()
+                patcher = IdFromDataTestPatcher(cfg)
+                report = patcher.preview()
+                return {
+                    "ok": True,
+                    "data": report.to_dict(),
+                    "duration": round(time.time() - t0, 2),
+                }
+        except ValueError as e:
+            return {"ok": False, "errors": [str(e)]}
+
+    return await asyncio.to_thread(_blocking)
+
+
+@app.post("/api/projects/{name}/id-patch/apply")
+async def id_patch_apply(name: str, body: IdPatchApplyBody):
+    """Vue dosyalarına id ekle ve Robot locatorlarını güncelle."""
+    if _analysis_lock.locked():
+        return {"ok": False, "errors": ["Baska bir analiz devam ediyor. Lutfen bekleyin."], "busy": True}
+    p = get_project_data(name)
+
+    if p.get("vue_source", "local") == "git":
+        return {
+            "ok": False,
+            "errors": ["Git'ten çekilen Vue projesine yazma yapılamaz. Proje ayarlarında Vue kaynağını 'Yerel' olarak seçin."],
+        }
+    if body.apply_robot and not body.dry_run and p.get("robot_source", "local") == "git":
+        return {
+            "ok": False,
+            "errors": ["Git'ten çekilen Robot projesine yazma yapılamaz."],
+        }
+
+    def _blocking():
+        try:
+            with resolve_paths(p) as (vue_path, _, robot_path):
+                cfg = build_config(vue_path, "", robot_path, p)
+                errors = cfg.validate()
+                if errors:
+                    return {"ok": False, "errors": errors}
+                t0 = time.time()
+                patcher = IdFromDataTestPatcher(cfg)
+                report = patcher.preview()
+                sugs = report.suggestions
+                if body.selected_indices is not None:
+                    idx_set = set(body.selected_indices)
+                    sugs = [s for i, s in enumerate(sugs) if i in idx_set]
+                result = patcher.apply(sugs, dry_run=body.dry_run, apply_robot=body.apply_robot)
+                return {
+                    "ok": True,
+                    "data": {**report.to_dict(), "apply_result": result, "dry_run": body.dry_run},
                     "duration": round(time.time() - t0, 2),
                 }
         except ValueError as e:
