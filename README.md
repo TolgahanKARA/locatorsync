@@ -187,6 +187,7 @@ Arayüz Sigortam.net marka kimliği esas alınarak tasarlanmıştır:
 - **Heal:** Düzeltme önerileri, Dry-Run ve canlı patch uygulama (onay diyaloğu ile)
 - **Vue Fark Analizi:** Eski/yeni Vue karşılaştırması, etkilenen Robot locator'ları
 - **data-test Ekle:** Vue dosyalarına otomatik `data-test` ekler — Önizle → satır satır seçim (checkbox) → Dry-Run → Seçilileri Uygula akışı
+- **ID Ekle:** Vue'da `data-test` olan ama `id` olmayan elementlere aynı değerde `id` ekler. Robot'taki `css=[data-test='X']` locatorlarını otomatik olarak `id=X` ile değiştirir. Tek ekran'da hem Vue hem Robot dosyaları güncellenir.
 - **Eşik alanları:** Proje formunda RF locator hiyerarşisini gösteren "Skor Tablosu" açılır; UYARI/KRİTİK etiketleri ile eşik açıklamaları
 - **Tarama Önceliği:** Proje ayarlarında klasör öncelik sırası belirlenir (örn. `po, app, test, object`). Robot dosyaları bu sırayla taranır; CSS ve XPath locator'ları sonuç tablolarında otomatik olarak öne alınır ve mor renk ile vurgulanır.
 - **Klasör Etiketleri:** Analiz sonuçlarında her locator satırında dosyanın ait olduğu klasör türü (PO / App / Test / Obj) badge olarak gösterilir.
