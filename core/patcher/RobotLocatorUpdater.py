@@ -158,7 +158,7 @@ class RobotLocatorUpdater:
                     if dt_value not in dt_to_id:
                         break
                     id_value = dt_to_id[dt_value]
-                    new_locator = f"id={id_value}"
+                    new_locator = f"css=#{id_value}"
 
                     key = (str(robot_file), line_num, old_locator)
                     if key not in seen:

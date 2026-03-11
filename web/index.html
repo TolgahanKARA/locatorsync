@@ -2044,7 +2044,7 @@
               <div class="card-body">
                 <div class="stat-val" style="color:#7267EF;">id=</div>
                 <div class="stat-label">Hedef Locator</div>
-                <div style="font-size:0.72rem;color:#adb5bd;margin-top:4px;">css=[data-test='X'] → id=X</div>
+                <div style="font-size:0.72rem;color:#adb5bd;margin-top:4px;">css=[data-test='X'] → css=#X</div>
               </div>
             </div>
           </div>
@@ -2054,7 +2054,7 @@
           <div class="alert alert-success">✓ ${showApplyResult && applyResult && !applyResult.dry_run ? 'Güncelleme tamamlandı — başka değiştirilecek locator kalmadı.' : 'Güncellenecek data-test locator bulunamadı.'}</div>
           ${!showApplyResult ? `<div class="alert alert-warning mt-2" style="font-size:0.8rem;">
             <strong>Kullanılan Vue yolu:</strong> <code>${d.vue_path_used || '—'}</code>
-            <button class="btn btn-sm btn-outline-secondary ms-2" style="font-size:0.72rem;padding:1px 8px;" onclick="App.switchTab('projects')">
+            <button class="btn btn-sm btn-outline-secondary ms-2" style="font-size:0.72rem;padding:1px 8px;" onclick="App.editProject()">
               Proje Ayarlarını Düzenle
             </button><br><br>
             <strong>Vue'da id+data-test olan element sayısı:</strong> <strong>${stats.vue_elements_with_id || 0}</strong><br>
