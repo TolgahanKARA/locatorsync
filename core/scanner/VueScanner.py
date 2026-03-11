@@ -67,7 +67,12 @@ class VueScanner:
 
     def _parse_elements(self, template: str, file_path: str, base_line: int) -> list[VueElement]:
         elements = []
-        tag_pattern = re.compile(r"<([a-zA-Z][a-zA-Z0-9\-]*)\s*([^>]*?)(/?>)", re.DOTALL)
+        # [^>] yerine quoted string içindeki > karakterlerini de yakala
+        # "..." veya '...' içindeki > atlanır, dışındaki > tag sonunu işaretler
+        tag_pattern = re.compile(
+            r'<([a-zA-Z][a-zA-Z0-9\-]*)\s*((?:[^>"\']|"[^"]*"|\'[^\']*\')*)(\s*/?>)',
+            re.DOTALL
+        )
         for match in tag_pattern.finditer(template):
             tag = match.group(1).lower()
             attrs_str = match.group(2)
