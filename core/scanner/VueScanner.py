@@ -75,13 +75,22 @@ class VueScanner:
             line = base_line + line_offset + 1
             attrs = self._parse_attributes(attrs_str)
             inner_text = self._extract_inner_text(template, match.end(), tag)
+            # Hem statik (data-test) hem dynamic (:data-test) binding desteklenir
+            static_dt   = attrs.get("data-test")
+            dynamic_dt  = attrs.get(":data-test")
+            static_dtid = attrs.get("data-testid")
+            dynamic_dtid= attrs.get(":data-testid")
+            static_id   = attrs.get("id")
+            dynamic_id  = attrs.get(":id")
+            is_dynamic  = bool(dynamic_dt or dynamic_dtid)
+
             element = VueElement(
                 tag=tag,
                 file=file_path,
                 line=line,
-                data_test=attrs.get("data-test"),
-                data_testid=attrs.get("data-testid"),
-                element_id=attrs.get("id"),
+                data_test=static_dt or dynamic_dt,
+                data_testid=static_dtid or dynamic_dtid,
+                element_id=static_id or dynamic_id,
                 classes=self._parse_classes(attrs.get("class", "")),
                 name=attrs.get("name"),
                 aria_label=attrs.get("aria-label"),
@@ -89,6 +98,7 @@ class VueScanner:
                 is_interactive=(tag in INTERACTIVE_TAGS),
                 has_v_if="v-if" in attrs,
                 has_v_show="v-show" in attrs,
+                is_dynamic_binding=is_dynamic,
             )
             element.stability_score = StabilityScorer.score_vue_element(element)
             elements.append(element)

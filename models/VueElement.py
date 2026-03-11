@@ -18,6 +18,7 @@ class VueElement:
     has_v_if: bool = False
     has_v_show: bool = False
     stability_score: int = 0
+    is_dynamic_binding: bool = False   # True → :data-test dynamic, :id yazılmalı
 
     def best_selector(self) -> Optional[str]:
         if self.data_test:

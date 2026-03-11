@@ -1805,7 +1805,8 @@
           <td style="font-size:0.75rem;">
             <span class="code" style="color:#6c757d;">${s.attr_source}="${s.data_test_value}"</span>
             <span style="color:#adb5bd;margin:0 4px;">→</span>
-            <span class="code" style="color:#7267EF;font-weight:600;">id="${s.data_test_value}"</span>
+            <span class="code" style="color:#7267EF;font-weight:600;">${s.id_attr||'id'}="${s.data_test_value}"</span>
+            ${s.is_dynamic ? '<span style="font-size:0.65rem;background:#7267ef22;color:#7267EF;border-radius:3px;padding:1px 4px;margin-left:4px;">dynamic</span>' : ''}
           </td>
           <td>${robotUpdates || '<span style="color:#adb5bd;font-size:0.72rem;">Robot eşleşmesi yok</span>'}</td>
         </tr>`;

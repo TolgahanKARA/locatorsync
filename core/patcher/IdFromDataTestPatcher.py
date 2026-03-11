@@ -47,10 +47,11 @@ class IdSuggestion:
         vue_file: str,
         vue_line: int,
         vue_tag: str,
-        data_test_value: str,       # data-test attribute değeri → id değeri olacak
-        attr_source: str,           # "data-test" | "data-testid"
+        data_test_value: str,       # data-test attribute değeri/expression'ı
+        attr_source: str,           # "data-test" | ":data-test" | "data-testid" | ":data-testid"
         original_snippet: str = "",
         robot_updates: Optional[list] = None,
+        is_dynamic: bool = False,   # True → :id yazılmalı (dynamic binding)
     ):
         self.vue_file = vue_file
         self.vue_line = vue_line
@@ -59,6 +60,9 @@ class IdSuggestion:
         self.attr_source = attr_source
         self.original_snippet = original_snippet
         self.robot_updates: list[RobotUpdate] = robot_updates or []
+        self.is_dynamic = is_dynamic
+        # Yazılacak attribute: dynamic → :id, static → id
+        self.id_attr = ":id" if is_dynamic else "id"
 
     def to_dict(self) -> dict:
         return {
@@ -69,6 +73,8 @@ class IdSuggestion:
             "data_test_value": self.data_test_value,
             "attr_source": self.attr_source,
             "id_to_add": self.data_test_value,
+            "id_attr": self.id_attr,
+            "is_dynamic": self.is_dynamic,
             "original_snippet": self.original_snippet,
             "robot_updates": [u.to_dict() for u in self.robot_updates],
         }
@@ -121,10 +127,10 @@ class IdFromDataTestPatcher:
             attr_source = None
             if el.data_test:
                 dt_value = el.data_test
-                attr_source = "data-test"
+                attr_source = ":data-test" if el.is_dynamic_binding else "data-test"
             elif el.data_testid:
                 dt_value = el.data_testid
-                attr_source = "data-testid"
+                attr_source = ":data-testid" if el.is_dynamic_binding else "data-testid"
 
             if not dt_value:
                 continue
@@ -137,6 +143,7 @@ class IdFromDataTestPatcher:
                 data_test_value=dt_value,
                 attr_source=attr_source,
                 original_snippet=snippet,
+                is_dynamic=el.is_dynamic_binding,
             )
             report.suggestions.append(sug)
             # Aynı data-test değeri birden fazla elementte olabilir → liste ile tut
@@ -265,11 +272,11 @@ class IdFromDataTestPatcher:
 
         for sug in sorted_sugs:
             snippet = self._get_snippet_from_content(content, sug.vue_line)
-            if 'id=' in snippet:
+            if 'id=' in snippet or ':id=' in snippet:
                 continue  # zaten id var
 
             new_content, ok = self._insert_attr(
-                content, sug.vue_line, sug.vue_tag, "id", sug.data_test_value
+                content, sug.vue_line, sug.vue_tag, sug.id_attr, sug.data_test_value
             )
             if ok:
                 content = new_content
@@ -359,7 +366,9 @@ class IdFromDataTestPatcher:
             return content, False
 
         tag_content = content[char_offset:end_pos]
-        if f'{attr_name}=' in tag_content:
+        # Hem statik hem dynamic kontrol et (id= veya :id=)
+        bare = attr_name.lstrip(":")
+        if f'{attr_name}=' in tag_content or f'{bare}=' in tag_content:
             return content, False
 
         insert_at = end_pos - 1 if content[end_pos - 1] == "/" else end_pos
